@@ -1032,7 +1032,7 @@ function renderRecords(){
   <div class="seg" id="rcTabs" style="margin:12px 6px 12px 0">${tabs.map(([k,l])=>`<button data-rc="${k}" class="${recCat===k?"on":""}">${l}</button>`).join("")}</div>
   ${list.map(r=>`<div class="rec"><div class="t"><span>${esc(r.title)}</span><span>${r.amount?rs(r.amount):""}</span></div><div class="m">${esc(CAT_LABEL[r.category]||r.category)} · ${fmtDate(r.date)}${r.note?" · "+esc(r.note):""}${r.by?" · by "+esc(r.by):""}</div>
     <div class="stack" style="margin-top:0"><button class="btn small tiny ghost" data-rview="${esc(r.id)}">📎 View ${r.n}</button>${canEdit()&&r.category!=="owner"?`<button class="btn small tiny ghost danger" data-rdel="${esc(r.id)}">Delete</button>`:""}</div></div>`).join("")||'<div class="empty">Nothing saved for this month yet.</div>'}
-  <div class="card adminblock"><div class="section-head"><h3>Google Drive folders</h3></div><p class="dueline" style="margin:-4px 0 10px">Open the folders in Drive to share them with the committee.</p>
+  ${recD.folderErr?`<p class="notebox">The Drive folders could not be created: ${esc(recD.folderErr)}. In Apps Script run <b>authorize</b> once and click Allow, then Deploy &gt; New version. Open Connection check to see the exact step that fails.</p>`:""}<div class="card adminblock"><div class="section-head"><h3>Google Drive folders</h3></div><p class="dueline" style="margin:-4px 0 10px">Open the folders in Drive to share them with the committee.</p>
     <div class="stack" style="margin-top:0">${["owner","tanker","repair"].map(k=>f[k]?`<a class="btn small tiny ghost" href="${esc(f[k])}" target="_blank" rel="noopener">${esc(CAT_LABEL[k])} ↗</a>`:"").join("")||'<span class="dueline">Folders appear after the first upload.</span>'}</div></div>`;
   $("rcMonth").onchange=e=>{ recMonth=e.target.value; loadRecords(); };
   $("rcTabs").onclick=e=>{ const b=e.target.closest("[data-rc]"); if(b){ recCat=b.dataset.rc; renderRecords(); } };
@@ -1411,25 +1411,29 @@ function editPaymentModal(flat){
 }
 let myClaimsD=null;
 async function loadMyClaims(){ if(!isMember()){ myClaimsD=null; return; } try{ myClaimsD=(await apiPost({action:"myClaims"})).claims; }catch(e){} try{ renderResult(); }catch(e){} }
-let kShot="";
+let kShot="", kWarn=false;
 function claimModal(note){
   const c = calc(byFlat(selected));
   if(!(isMember() && session.flats.includes(c.f.flat))){ toast("You can report payment only for your own flat.",true); return; }
   if(c.due<=0){ toast("No dues pending for this flat.",true); return; }
-  kShot="";
+  kShot=""; kWarn=false;
   openModal({title:"I have paid",sub:note||`Flat ${esc(c.f.flat)}. Add your payment screenshot so the committee can confirm. It shows as paid once they approve.`,
     body:`<div class="two"><div class="field"><label for="kAmt">Amount paid (₹)</label><input type="number" id="kAmt" step="0.01" inputmode="decimal" value="${c.due.toFixed(2)}"></div><div class="field"><label for="kDate">Date paid</label><input type="date" id="kDate" value="${todayISO()}"></div></div>
     <div class="field"><label>Payment screenshot</label><div id="kThumb"></div><button type="button" class="btn small ghost" id="kAdd">+ Add screenshot</button><input type="file" id="kFile" accept="image/*" hidden></div>
     <div class="field"><label for="kRef">UPI / bank reference number (optional if you add the screenshot)</label><input id="kRef" maxlength="40" placeholder="From your payment receipt"></div>`,
     actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Send to committee",onClick:async close=>{
       const amount=parseFloat($("kAmt").value); if(!(amount>0)) throw new Error("Enter the amount you paid");
+      if($("kThumb").textContent.includes("Preparing")) throw new Error("Please wait, the screenshot is being prepared");
+      if(!kShot && !kWarn){ kWarn=true; throw new Error("No screenshot added yet. Tap '+ Add screenshot'. To send without it, tap Send again."); }
       if(!kShot && !$("kRef").value.trim()) throw new Error("Add the payment screenshot or the reference number");
       const body={action:"addClaim",flat:c.f.flat,amount,date:$("kDate").value,ref:$("kRef").value}; if(kShot) body.photo=kShot;
       const jr=await apiPost(body);
       close(); await refresh(true); toast(jr.photoFailed?"Sent, but the screenshot could not be saved"+(jr.photoReason?" ("+jr.photoReason+")":"")+". Please send it to the committee on WhatsApp.":"Sent to the committee. Thank you!",!!jr.photoFailed);
     }}]});
   $("kAdd").onclick=()=>$("kFile").click();
-  $("kFile").onchange=async e=>{ try{ const f=e.target.files[0]; if(f){ kShot=await shrinkImage(f,1400,.8); $("kThumb").innerHTML=`<div class="shotthumb"><img alt="screenshot" src="data:image/jpeg;base64,${kShot}"><span>Screenshot added</span></div>`; $("kAdd").textContent="Change screenshot"; $("mErr").textContent=""; } }catch(err){ $("mErr").textContent=err.message; } e.target.value=""; };
+  $("kFile").onchange=async e=>{ const f=e.target.files[0]; e.target.value=""; if(!f) return; kShot=""; $("kThumb").innerHTML='<div class="shotthumb"><span>Preparing screenshot…</span></div>'; $("mErr").textContent="";
+    try{ kShot=await shrinkImage(f,1400,.8); $("kThumb").innerHTML=`<div class="shotthumb"><img alt="screenshot" src="data:image/jpeg;base64,${kShot}"><span>✓ Screenshot added</span></div>`; $("kAdd").textContent="Change screenshot"; }
+    catch(err){ $("kThumb").innerHTML=""; $("mErr").textContent="This picture could not be used ("+err.message+"). Please take a normal screenshot (PNG or JPG) and try again."; } };
 }
 function payNow(){
   if(!selected||!data) return;
