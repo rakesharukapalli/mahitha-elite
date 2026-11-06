@@ -110,7 +110,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .copyrow:last-of-type{border-bottom:0}
 .copyrow span{color:var(--soft);font-size:11px;display:block}.copyrow b{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .refbox{padding:10px 12px;border-radius:12px;background:rgba(0,198,255,.08);border:1px solid rgba(0,198,255,.25);font-size:12px;margin-bottom:6px}
-.stack{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.stack>*{flex:1;min-width:130px}
+.stack{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.stack>*{flex:1;min-width:130px}.stack>.tiny{flex:0 0 auto;min-width:0}
 
 /* overview */
 .overview{padding:20px}
@@ -321,6 +321,11 @@ h1{font-weight:900;letter-spacing:-.8px}.sub{color:var(--soft)}
 .chip button{border:0;background:var(--gold);border-radius:50%;width:22px;height:22px;font-weight:900;cursor:pointer;color:var(--ink)}
 .mflat{display:inline-flex;align-items:center;justify-content:center;min-width:52px;padding:8px 6px;margin:0 6px 8px 0;border:2px solid var(--ink);border-radius:10px;background:#fff;font-weight:900;color:var(--ink);cursor:pointer;font:inherit;font-weight:900}
 .mflat.done{background:var(--green)}.mflat.on{outline:3px solid var(--ink);background:var(--pink)}
+.moregroup{margin:6px 6px 8px 2px;font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.rec{padding:12px;border:2px solid var(--ink);border-radius:12px;background:#fff;margin:0 6px 10px 0;color:var(--ink)}.rec .t{display:flex;justify-content:space-between;gap:8px;font-weight:900}.rec .m{font-size:12px;color:var(--soft);margin:2px 0 8px}
+.proofimg{display:block;max-width:100%;margin:6px auto 12px;border:2px solid var(--ink);border-radius:10px}
+.btn.tiny{padding:6px 9px;font-size:12px;border-radius:9px}
+.notebox{margin:8px 0 0;padding:8px 10px;border:2px solid var(--ink);border-radius:10px;background:var(--gold);font-size:13px;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -405,6 +410,9 @@ h1{font-weight:900;letter-spacing:-.8px}.sub{color:var(--soft)}
   <section id="v-more" hidden></section>
   <section id="v-utility" hidden></section>
   <section id="v-meter" hidden></section>
+  <section id="v-works" hidden></section>
+  <section id="v-meet" hidden></section>
+  <section id="v-records" hidden></section>
 
   <div class="footer" id="footer"></div>
 </div>
@@ -522,7 +530,7 @@ async function refresh(quiet){
     data = j; store.set("mhe_data",JSON.stringify(j)); store.set("mhe_time",String(Date.now()));
     $("offlineBanner").hidden = true;
     if(adminP) adminP.then(a=>{ if(a){ adminData=a; adminErr=""; } renderAll(); });
-    renderAll(); afterRefresh();
+    renderAll(); afterRefresh(); loadMyClaims();
   }catch(e){ if(!lastErr) lastErr=String(e&&e.message||e); sync.state="bad"; syncUpdate(); if(!quiet) toast("Could not refresh. Showing saved information.",true); $("offlineBanner").hidden = navigator.onLine; }
 }
 
@@ -663,15 +671,16 @@ const ICONS = {
   requests:'<path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h3"/>',
   admin:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 118 0v3"/>'
 };
-const MORE_VIEWS = ["notices","help","requests","utility","meter"];
-const VIEW_TITLE = {notices:"Notice board",help:"Complaints & Help",requests:"Payment requests",utility:"Tax & Electricity",meter:"Meter calculator"};
+const MORE_VIEWS = ["notices","help","requests","utility","meter","works","meet","records"];
+const VIEW_TITLE = {notices:"Notice board",help:"Complaints & Help",requests:"Payment requests",utility:"Tax & Electricity",meter:"Meter calculator",works:"Tasks",meet:"Meetings",records:"Records & proofs"};
 ICONS.more='<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>';
 ICONS.utility='<path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>';
 ICONS.meter='<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2M16 16h0"/>';
 ICONS.guide='<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1-1.5 2M12 17h0"/>';
 ICONS.install='<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>';
 ICONS.check='<path d="M5 13l4 4L19 7"/>';
-const VIEWS = ["dues","status","notices","help","fund","requests","admin","more","utility","meter"];
+const VIEWS = ["dues","status","notices","help","fund","requests","admin","more","utility","meter","works","meet","records"];
+ICONS.works='<path d="M9 11l3 3 8-8M4 12v7h14"/>'; ICONS.meet='<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M15 14.5c3 0 6 1.8 6 5.5"/>'; ICONS.records='<path d="M4 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V7z"/>';
 function badgeCounts(){ return { notices:unseenNotices().length, help:unseenComplaints().length, requests:(isAdmin()&&adminData)?adminData.claims.length:0 }; }
 function renderNav(){
   const main = [["dues","Dues"],["status","Status"]].concat(session?[["fund","Committee"]]:[]).concat(isAdmin()?[["admin","Admin"]]:[]).concat([["more","More"]]);
@@ -685,17 +694,21 @@ function renderNav(){
 function renderMore(){
   const el=$("v-more"); if(!el) return;
   const bc=badgeCounts();
-  const tiles=[["notices","Notice board","Announcements from the committee",bc.notices],["help","Complaints & Help","Report a problem, see replies",bc.help],["utility","Tax & Electricity","Property tax and power bill numbers",0]];
-  if(isAdmin()) tiles.push(["requests","Payment requests","Check and approve payments",bc.requests],["meter","Meter calculator","Enter water readings",0]);
-  tiles.push(["guide","App guide","How to use this app",0]);
-  if(deferredInstall&&!standalone) tiles.push(["install","Install app","Add to your home screen",0]);
-  if(isAdmin()) tiles.push(["conn","Connection check","Test the link to the sheet",0]);
-  el.innerHTML=`<div class="section-head"><h3>More</h3></div><div class="moregrid">${tiles.map(([k,t,sub,n])=>`<button type="button" class="tile" data-more="${k}"><span class="ti"><svg viewBox="0 0 24 24">${ICONS[k==="conn"?"check":k]}</svg></span><b>${t}</b><span class="sub">${sub}</span>${n?`<span class="cnt">${n}</span>`:""}</button>`).join("")}</div>`;
+  const grp=[
+    ["Community",[["notices","Notice board","Announcements from the committee",bc.notices],["help","Complaints & Help","Report a problem, see replies",bc.help],["utility","Tax & Electricity","Property tax and power bill numbers",0]]]
+  ];
+  if(session) grp.push(["Committee work",[["works","Tasks","Work items and who does them",0],["meet","Meetings","Minutes and decisions",0]]]);
+  if(isAdmin()) grp.push(["Admin tools",[["requests","Payment requests","Check and approve payments",bc.requests],["meter","Meter calculator","Enter water readings",0],["records","Records & proofs","Bills and payment screenshots",0]]]);
+  const app=[["guide","App guide","How to use this app",0]];
+  if(deferredInstall&&!standalone) app.push(["install","Install app","Add to your home screen",0]);
+  if(isAdmin()) app.push(["conn","Connection check","Test the link to the sheet",0]);
+  grp.push(["App",app]);
+  el.innerHTML=`<div class="section-head"><h3>More</h3></div>`+grp.map(([h,tiles])=>`<div class="moregroup">${h}</div><div class="moregrid">${tiles.map(([k,t,sub,n])=>`<button type="button" class="tile" data-more="${k}"><span class="ti"><svg viewBox="0 0 24 24">${ICONS[k==="conn"?"check":k]}</svg></span><b>${t}</b><span class="sub">${sub}</span>${n?`<span class="cnt">${n}</span>`:""}</button>`).join("")}</div>`).join("");
 }
 document.addEventListener("click",e=>{ const t=e.target.closest("[data-more]"); if(!t) return; const k=t.dataset.more;
   if(k==="guide") return showWelcome(); if(k==="install") return doInstall(); if(k==="conn") return connectionModal();
   if(k==="utility"&&!session) return loginModal(); go(k); });
-function go(v){ if(!VIEWS.includes(v)) v="dues"; if(["admin","requests","meter"].includes(v)&&!isAdmin()) v="dues"; if(["fund","utility"].includes(v)&&!session) v="dues"; view=v; renderNav(); if(v==="more") renderMore(); if(v==="notices"){ renderNotices(); markSeen(); renderNav(); updateBadge(); } if(v==="help"&&isAdmin()){ markSeenC(); renderNav(); updateBadge(); } if(v==="notices") nlRead(["notice"]); if(v==="help") nlRead(["complaint","reply"]); if(v==="requests") nlRead(["claim"]); if(v==="fund") loadFund(); if(v==="utility") loadUtility(); if(v==="meter") loadMeter(); try{ history.replaceState(null,"","#"+v); }catch(e){} window.scrollTo({top:0}); }
+function go(v){ if(!VIEWS.includes(v)) v="dues"; if(["admin","requests","meter","records"].includes(v)&&!isAdmin()) v="dues"; if(["fund","utility","works","meet"].includes(v)&&!session) v="dues"; view=v; renderNav(); if(v==="more") renderMore(); if(v==="notices"){ renderNotices(); markSeen(); renderNav(); updateBadge(); } if(v==="help"&&isAdmin()){ markSeenC(); renderNav(); updateBadge(); } if(v==="notices") nlRead(["notice"]); if(v==="help") nlRead(["complaint","reply"]); if(v==="requests") nlRead(["claim"]); if(v==="fund") loadFund(); if(v==="utility") loadUtility(); if(v==="meter") loadMeter(); if(v==="works"||v==="meet") loadWorks(); if(v==="records") loadRecords(); try{ history.replaceState(null,"","#"+v); }catch(e){} window.scrollTo({top:0}); }
 $("nav").addEventListener("click",e=>{ const b=e.target.closest("[data-tab]"); if(b) go(b.dataset.tab); });
 
 /* ---------- toast & modal ---------- */
@@ -781,6 +794,8 @@ function renderResult(){
   const claim = data.claims.filter(k=>k.flat===x.flat)[0];
   const pays = c.mine.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(p=>`<div class="detail"><span>${fmtDate(p.date)}</span><b class="g">${rs(p.amount)}</b></div>`).join("");
   const owns = isMember() && session.flats.includes(x.flat);
+  const mcl = owns && myClaimsD && myClaimsD[0];
+  const claimNote = !mcl ? "" : mcl.status==="Pending" ? `<p class="notebox">Your payment request of ${rs(mcl.amount)} is waiting for the committee to approve.</p>` : (mcl.status==="Rejected" ? `<p class="notebox" style="background:#ffd9df">Your last payment request of ${rs(mcl.amount)} was not accepted${mcl.note?": "+esc(mcl.note):". Please contact the committee."}</p>` : "");
   const claimBtn = owns ? `<button class="btn green" data-act="claim">Upload payment screenshot</button>` : (!session ? `<button class="btn green" data-act="claim-login">Sign in to report payment</button>` : "");
   const upiLink = cfg.upi ? `upi://pay?pa=${encodeURIComponent(cfg.upi)}&pn=${encodeURIComponent(cfg.association)}&am=${c.due.toFixed(2)}&cu=INR&tn=${encodeURIComponent(refText(x.flat))}` : "";
   const row = (l,v) => v ? `<div class="copyrow"><div><span>${l}</span><b>${esc(v)}</b></div><button class="btn small ghost" data-copy="${esc(v)}">Copy</button></div>` : "";
@@ -788,7 +803,7 @@ function renderResult(){
     <div class="refbox">Write this in the payment note: <b>${esc(refText(x.flat))}</b></div>
     ${row("Google Pay number",cfg.gpay)}${row("UPI ID",cfg.upi)}${row("Account name",cfg.bank.holder)}${row("Account number",cfg.bank.account)}${row("IFSC",cfg.bank.ifsc)}
     ${CFG.QR_IMAGE?`<img class="qrimg" src="${esc(CFG.QR_IMAGE)}" alt="Scan to pay" onerror="this.remove()">`:""}
-    <div class="stack">${(upiLink||CFG.QR_IMAGE)?`<button class="btn" data-act="pay">Pay now</button>`:""}${claimBtn}</div></div>` : "";
+    <div class="stack">${(upiLink||CFG.QR_IMAGE)?`<button class="btn" data-act="pay">Pay now</button>`:""}${claimBtn}</div>${claimNote}</div>` : (claimNote?`<div class="paybox">${claimNote}</div>`:"");
   el.innerHTML = `<div class="selected">
     <div class="sel-top"><div><div class="label">Flat Number</div><div class="flat-big">${x.flat}</div><div class="owner">${esc(x.owner)}</div></div><span class="pill ${c.status}">${{paid:"Paid",partial:"Part paid",pending:"Pending"}[c.status]}</span></div>
     <div class="amtbox ${c.status}"><div class="amount-label">Amount due</div>
@@ -937,12 +952,12 @@ function renderUtility(){
     ${f.door?`<p class="dueline" style="margin:-4px 0 6px">Door no. ${esc(f.door)}</p>`:""}
     ${row("Property tax assessment no.",f.tax)}${row("Electricity USC no.",f.usc)}${row("Electricity service no.",f.service)}
     ${!(f.tax||f.usc||f.service)?'<p class="dueline">No numbers are saved for this flat yet. Please tell the committee.</p>':""}
-    <div class="stack"><a class="btn" href="${esc(ptax)}" target="_blank" rel="noopener">Pay property tax</a><a class="btn green" href="${esc(power)}" target="_blank" rel="noopener">Pay electricity bill</a></div></div>`;
+    <div class="stack" style="margin-top:10px"><a class="btn small tiny" href="${esc(ptax)}" target="_blank" rel="noopener">Pay ↗ Tax</a><a class="btn small tiny green" href="${esc(power)}" target="_blank" rel="noopener">Pay ↗ Electricity</a></div></div>`;
   el.innerHTML=`<div class="section-head"><h3>Property tax &amp; Electricity</h3></div>
   <p class="dueline" style="margin:-6px 0 14px">Copy your number, then tap Pay to open the official website. These payments go directly to the government offices, not to the association. Keep the receipt.</p>
   ${isAdmin()?`<div class="search" style="margin:0 6px 14px 0"><input id="uSearch" placeholder="Search flat or owner" value="${esc(utilQ)}" autocomplete="off"></div>`:""}
   ${list.map(card).join("")||'<div class="empty">No flat found.</div>'}
-  ${isAdmin()&&utilData.common&&!q?`<div class="card adminblock"><div class="section-head"><h3>Common area electricity</h3></div>${row("Electricity USC no.",utilData.common.usc)}${row("Electricity service no.",utilData.common.service)}<div class="stack"><a class="btn green" href="${esc(power)}" target="_blank" rel="noopener">Pay electricity bill</a></div></div>`:""}`;
+  ${isAdmin()&&utilData.common&&!q?`<div class="card adminblock"><div class="section-head"><h3>Common area electricity</h3></div>${row("Electricity USC no.",utilData.common.usc)}${row("Electricity service no.",utilData.common.service)}<div class="stack" style="margin-top:10px"><a class="btn small tiny green" href="${esc(power)}" target="_blank" rel="noopener">Pay ↗ Electricity</a></div></div>`:""}`;
   const si=$("uSearch"); if(si){ si.oninput=e=>{ utilQ=e.target.value; const pos=e.target.selectionStart; renderUtility(); const n=$("uSearch"); n.focus(); try{ n.setSelectionRange(pos,pos); }catch(x){} }; }
 }
 
@@ -1000,26 +1015,86 @@ function renderMeter(){
 }
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-mflat]"); if(!b) return; meterFlat=b.dataset.mflat; renderMeter(); const c=$("mCurr"); if(c){ c.scrollIntoView({block:"center"}); c.focus(); } });
 
+/* ---------- records & proofs (admin) ---------- */
+let recD=null, recCat="all", recMonth="", recErr="";
+function recMonths(){ const out=[], d=new Date(); for(let i=0;i<8;i++){ const x=new Date(d.getFullYear(),d.getMonth()-i,1); out.push(x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")); } return out; }
+async function loadRecords(){ if(!recMonth) recMonth=recMonths()[0]; recErr=""; recD=null; renderRecords(); try{ recD=await apiPost({action:"records",month:recMonth,folders:true}); }catch(e){ recErr=e.message; } renderRecords(); }
+function renderRecords(){
+  const el=$("v-records"); if(!el) return;
+  if(!isAdmin()){ el.innerHTML=""; return; }
+  if(recErr){ el.innerHTML=`<div class="card adminblock"><div class="section-head"><h3>Could not load</h3></div><p class="dueline" style="color:#c81e45">${esc(recErr)}</p><button class="btn" data-go="records">Try again</button></div>`; return; }
+  if(!recD){ el.innerHTML='<div class="empty">Loading…</div>'; return; }
+  const list=recD.records.filter(r=>recCat==="all"||r.category===recCat), f=recD.folders||{};
+  const tabs=[["all","All"],["owner","Owners"],["tanker","Tanker"],["repair","Repairs"]];
+  el.innerHTML=`<div class="section-head"><h3>Records &amp; proofs</h3></div>
+  <p class="dueline" style="margin:-6px 0 12px">Payment screenshots and bills are kept here, in three Google Drive folders: owner payments, water tanker payments, and repairs &amp; renewals. They also show against the matching expense in the Fund statement.</p>
+  <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap"><div class="field" style="max-width:220px;margin:0"><label for="rcMonth">Month</label><select id="rcMonth">${recMonths().map(m=>`<option value="${m}" ${m===recMonth?"selected":""}>${monthLabelOf(m)}</option>`).join("")}</select></div>${canEdit()?`<button class="btn" id="rcAdd">+ Add bill / screenshot</button>`:""}</div>
+  <div class="seg" id="rcTabs" style="margin:12px 6px 12px 0">${tabs.map(([k,l])=>`<button data-rc="${k}" class="${recCat===k?"on":""}">${l}</button>`).join("")}</div>
+  ${list.map(r=>`<div class="rec"><div class="t"><span>${esc(r.title)}</span><span>${r.amount?rs(r.amount):""}</span></div><div class="m">${esc(CAT_LABEL[r.category]||r.category)} · ${fmtDate(r.date)}${r.note?" · "+esc(r.note):""}${r.by?" · by "+esc(r.by):""}</div>
+    <div class="stack" style="margin-top:0"><button class="btn small tiny ghost" data-rview="${esc(r.id)}">📎 View ${r.n}</button>${canEdit()&&r.category!=="owner"?`<button class="btn small tiny ghost danger" data-rdel="${esc(r.id)}">Delete</button>`:""}</div></div>`).join("")||'<div class="empty">Nothing saved for this month yet.</div>'}
+  <div class="card adminblock"><div class="section-head"><h3>Google Drive folders</h3></div><p class="dueline" style="margin:-4px 0 10px">Open the folders in Drive to share them with the committee.</p>
+    <div class="stack" style="margin-top:0">${["owner","tanker","repair"].map(k=>f[k]?`<a class="btn small tiny ghost" href="${esc(f[k])}" target="_blank" rel="noopener">${esc(CAT_LABEL[k])} ↗</a>`:"").join("")||'<span class="dueline">Folders appear after the first upload.</span>'}</div></div>`;
+  $("rcMonth").onchange=e=>{ recMonth=e.target.value; loadRecords(); };
+  $("rcTabs").onclick=e=>{ const b=e.target.closest("[data-rc]"); if(b){ recCat=b.dataset.rc; renderRecords(); } };
+  if($("rcAdd")) $("rcAdd").onclick=()=>proofModal({date:recMonth===todayISO().slice(0,7)?todayISO():recMonth+"-01"},()=>loadRecords());
+  el.querySelectorAll("[data-rview]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.rview); if(r) proofGallery([r],r.title); });
+  el.querySelectorAll("[data-rdel]").forEach(b=>b.onclick=()=>confirmModal("Delete this record?","The photos are removed from your Google Drive folder too.","Delete",async()=>{ await apiPost({action:"deleteRecord",id:b.dataset.rdel}); toast("Deleted."); loadRecords(); }));
+}
+
 /* ---------- monthly fund statement + water tankers ---------- */
 let fundData=null, fundMonth="", tankData=null, fundBusy=false, actData=null, fundSub="fund", actFilter="active";
 async function loadFund(){
   const el=$("v-fund"); if(!session){ el.innerHTML=""; return; }
   if(!fundData) el.innerHTML='<div class="empty">Loading statement…</div>';
   try{
+    const tp = isAdmin() ? apiPost({action:"tankers"}).catch(e=>({error:e.message})) : null;
     fundData = await apiPost({action:"fundStatement"}); syncIssue("fund","");
-    try{ actData = await apiPost({action:"actionItems"}); }catch(e){ actData={error:e.message,items:[]}; }
-    if(isAdmin()){ try{ tankData = await apiPost({action:"tankers"}); }catch(e){ tankData={error:e.message}; } }
+    if(tp) tankData = await tp;
     if(!fundData.statements.some(x=>x.month===fundMonth)) fundMonth = (fundData.statements[0]||{}).month||"";
     renderFund();
   }catch(e){ syncIssue("fund",e.message); el.innerHTML='<div class="empty">Could not load the statement. '+esc(e.message)+'<br><br><button class="btn small" id="fundCheck">Check connection</button></div>'; const fc=$("fundCheck"); if(fc) fc.onclick=connectionModal; }
 }
 function fMonthLabel(k){ const [y,m]=k.split("-").map(Number); return new Date(y,m-1,1).toLocaleDateString("en-IN",{month:"long",year:"numeric"}); }
-function expRows(list,edit){ return list.map(x=>`<div class="row" style="cursor:default"><span class="ow">${esc(x.item)}<em>${x.date?fmtDate(x.date):""}</em></span><span class="am">${rs(x.amount)}</span>${edit&&!/water\s*tanker\s*utili/i.test(x.item)?`<button class="btn small ghost danger" data-xdel="${x.row}|${esc(x.date)}|${esc(x.item)}">✕</button>`:""}</div>`).join(""); }
+let expCur=[];
+function expRows(list,edit){ expCur=list; return list.map((x,i)=>`<div class="row" style="cursor:default"><span class="ow">${esc(x.item)}<em>${x.date?fmtDate(x.date):""}</em></span><span class="am">${rs(x.amount)}</span>${x.proofs?`<button class="btn small tiny ghost" data-proofs="${i}" title="Bills and proofs">📎 ${x.proofs}</button>`:""}${edit?`<button class="btn small tiny ghost" data-xproof="${i}" title="Add bill or screenshot">+📎</button>`:""}${edit&&!/water\s*tanker\s*utili/i.test(x.item)?`<button class="btn small ghost danger" data-xdel="${x.row}|${esc(x.date)}|${esc(x.item)}">✕</button>`:""}</div>`).join(""); }
+/* ---------- proofs: bills and payment screenshots ---------- */
+function pickerHTML(id,label){ return `<div class="field"><label>${label}</label><div class="thumbs" id="${id}T"></div><button type="button" class="btn small ghost" id="${id}B">+ Add photo</button><input type="file" id="${id}F" accept="image/*" multiple hidden></div>`; }
+function pickerBind(id,max){
+  const arr=[], draw=()=>{ $(id+"T").innerHTML=arr.map((p,i)=>`<div class="th"><img alt="photo ${i+1}" src="data:image/jpeg;base64,${p}"><button type="button" data-pk="${i}" aria-label="Remove">×</button></div>`).join(""); $(id+"B").hidden=arr.length>=max; };
+  $(id+"B").onclick=()=>$(id+"F").click();
+  $(id+"F").onchange=async e=>{ try{ for(const f of Array.from(e.target.files)){ if(arr.length>=max) break; arr.push(await shrinkImage(f,1400,.8)); } }catch(err){ toast(err.message,true); } e.target.value=""; draw(); };
+  $(id+"T").onclick=e=>{ const r=e.target.closest("[data-pk]"); if(r){ arr.splice(Number(r.dataset.pk),1); draw(); } };
+  return ()=>arr.slice();
+}
+const CAT_LABEL={owner:"Owner payments",tanker:"Water tanker payments",repair:"Repairs & renewals"};
+async function proofGallery(items,title){
+  openModal({title:title||"Bills and proofs",body:`<div id="pgBox">${items.map(r=>`<div class="rec"><div class="t"><span>${esc(r.title)}</span><span>${r.amount?rs(r.amount):""}</span></div><div class="m">${fmtDate(r.date)}${r.note?" · "+esc(r.note):""}</div>${Array.from({length:r.n},(_,i)=>`<div class="pf" data-rid="${esc(r.id)}" data-i="${i}" style="text-align:center;color:#6b6358;font-size:13px">Loading…</div>`).join("")}</div>`).join("")||'<div class="empty">Nothing here yet.</div>'}</div>`,actions:[{label:"Close",cls:"ghost",cancel:true}]});
+  for(const box of Array.from(document.querySelectorAll("#pgBox .pf"))){
+    try{ const j=await apiPost({action:"recordFile",id:box.dataset.rid,i:Number(box.dataset.i)}); box.innerHTML=`<img class="proofimg" alt="proof" src="data:image/jpeg;base64,${j.data}">`; }
+    catch(err){ box.innerHTML='<span style="color:#c81e45">'+esc(err.message)+'</span>'; }
+  }
+}
+async function openProofsByKey(key,title){ try{ const j=await apiPost({action:"records",key}); proofGallery(j.records,title); }catch(err){ toast(err.message,true); } }
+function proofModal(pre,after){
+  pre=pre||{};
+  openModal({title:"Add bill / screenshot",sub:"Saved privately in your Google Drive folder and shown against the expense.",
+    body:`<div class="field"><label for="rcCat">Type</label><select id="rcCat"><option value="repair">Repairs, renewals, materials</option><option value="tanker">Water tanker payment</option></select></div>
+    <div class="two"><div class="field"><label for="rcDate">Date</label><input type="date" id="rcDate" value="${esc(pre.date||todayISO())}"></div><div class="field"><label for="rcAmt">Amount (₹)</label><input type="number" id="rcAmt" inputmode="decimal" value="${pre.amount||""}"></div></div>
+    <div class="field"><label for="rcTitle">What is it for</label><input id="rcTitle" maxlength="80" value="${esc(pre.title||"")}" placeholder="e.g. Motor repair bill"></div>
+    ${pickerHTML("rcP","Photos or screenshots (up to 4)")}
+    <div class="field"><label for="rcNote">Note (optional)</label><input id="rcNote" maxlength="200"></div>`,
+    actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Save",onClick:async close=>{
+      const photos=getRcP().map(d=>({data:d})); if(!photos.length) throw new Error("Add at least one photo or screenshot");
+      await apiPost({action:"addRecord",category:$("rcCat").value,date:$("rcDate").value,title:$("rcTitle").value,amount:$("rcAmt").value,note:$("rcNote").value,photos,expenseKey:pre.key||""});
+      close(); toast("Saved to the records."); if(after) after();
+    }}]});
+  if(pre.category) $("rcCat").value=pre.category;
+  const getRcP=pickerBind("rcP",4);
+}
+
 function renderFund(){
   const el=$("v-fund"); if(!fundData) return;
-  if(fundSub==="works") renderWorks(); else if(fundSub==="meet") renderMeetings(); else renderFundBody();
-  el.insertAdjacentHTML("afterbegin",`<div class="seg" id="fSub"><button data-sub="fund" class="${fundSub==="fund"?"on":""}">Fund</button><button data-sub="works" class="${fundSub==="works"?"on":""}">Tasks</button><button data-sub="meet" class="${fundSub==="meet"?"on":""}">Meetings</button></div>`);
-  $("fSub").onclick=e=>{ const b=e.target.closest("[data-sub]"); if(b){ fundSub=b.dataset.sub; renderFund(); } };
+  renderFundBody();
 }
 function renderFundBody(){
   const el=$("v-fund"); if(!fundData) return;
@@ -1038,7 +1113,7 @@ function renderFundBody(){
   const kp=(l,val,cl)=>`<div class="kpi"><span>${l}</span><b ${cl?`style="color:${cl}"`:""}>${val}</b></div>`;
   el.innerHTML = `<div class="card adminblock"><div class="section-head"><h3>Monthly Fund Statement</h3><div class="count">Admin view</div></div>
     <p class="dueline" style="margin:-4px 0 12px">Read from the "Balance sheet" tab of your Google Sheet. Members see only the expense list.</p>
-    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">${sel}<button class="btn small ghost" id="fPrint">Print / Save as PDF</button></div>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">${sel}<button class="btn small ghost" id="fPrint">Print / Save as PDF</button><button class="btn small ghost" id="fPrintP">Print with bills &amp; proofs</button></div>
     <div class="kpis" style="grid-template-columns:repeat(2,1fr);margin-top:14px">
       ${kp("Brought forward",rs(st.carry))}${kp("Cash received",rs(st.cash))}${kp("Available funds",rs(st.opening))}${kp("Expenses",rs(st.totalExpenses),"#8a5a00")}
     </div>
@@ -1057,14 +1132,14 @@ function renderFundBody(){
     <div class="kpis" style="grid-template-columns:repeat(2,1fr)">${kp("Billed",rs(c.billed))}${kp("Collected",rs(c.collected),"#0a7a3b")}${kp("Pending",rs(c.pending),"#c81e45")}${kp("Flats paid",c.paidFlats+" / "+c.flats)}</div></div>`:""}
   ${tankerCard()}`;
   $("fMonth").onchange=e=>{ fundMonth=e.target.value; renderFund(); };
-  $("fPrint").onclick=()=>printFund(st,c);
+  $("fPrint").onclick=()=>printFund(st,c); $("fPrintP").onclick=()=>printFund(st,c,true);
   bindTanker(); bindFundEdit(st);
 }
 
 const PRI_ORDER={P0:0,P1:1,P2:2,P3:3};
 const STATUS_CLS={"completed":"paid","in progress":"partial","open":"pending"};
 function renderWorks(){
-  const el=$("v-fund"); const d=actData||{items:[]};
+  const el=$("v-works"); const d=actData||{items:[]};
   if(d.error){ el.innerHTML=`<div class="card adminblock"><div class="section-head"><h3>Works &amp; actions</h3></div><div class="empty">${esc(d.error)}</div></div>`; return; }
   const all=d.items, isDone=x=>/^completed/i.test(x.status), isOpenish=x=>!isDone(x)&&!/^cancel/i.test(x.status);
   const cnt={open:all.filter(x=>/^open/i.test(x.status)).length, prog:all.filter(x=>/^in progress/i.test(x.status)).length, done:all.filter(isDone).length};
@@ -1084,18 +1159,18 @@ function renderWorks(){
     ${canEdit()?`<div class="stack"><button class="btn" id="aAdd">+ Add item</button></div>`:""}</div>
   <div class="seg" id="aFilter" style="margin-top:6px"><button data-f="active" class="${actFilter==="active"?"on":""}">Pending</button><button data-f="done" class="${actFilter==="done"?"on":""}">Completed</button><button data-f="all" class="${actFilter==="all"?"on":""}">All</button></div>
   <div class="feed">${list.map(card).join("")||'<div class="empty">Nothing here.</div>'}</div>`;
-  $("aFilter").onclick=e=>{ const b=e.target.closest("[data-f]"); if(b){ actFilter=b.dataset.f; renderFund(); } };
+  $("aFilter").onclick=e=>{ const b=e.target.closest("[data-f]"); if(b){ actFilter=b.dataset.f; renderWM(); } };
   if($("aAdd")) $("aAdd").onclick=()=>actionModal(null);
   document.querySelectorAll("[data-aedit]").forEach(b=>b.onclick=()=>actionModal(all[Number(b.dataset.aedit)]));
   document.querySelectorAll("[data-adone]").forEach(b=>b.onclick=async()=>{ const x=all[Number(b.dataset.adone)]; b.disabled=true;
-    try{ actData=await apiPost({action:"updateAction",row:x.row,oldTopic:x.topic,oldDate:x.date,topic:x.topic,desc:x.desc,date:x.date,target:x.target,priority:x.priority,status:"Completed",budget:x.budget,remarks:x.remarks}); renderFund(); toast("Marked as completed."); }catch(e){ toast(e.message,true); b.disabled=false; } });
+    try{ actData=await apiPost({action:"updateAction",row:x.row,oldTopic:x.topic,oldDate:x.date,topic:x.topic,desc:x.desc,date:x.date,target:x.target,priority:x.priority,status:"Completed",budget:x.budget,remarks:x.remarks}); renderWM(); toast("Marked as completed."); }catch(e){ toast(e.message,true); b.disabled=false; } });
   document.querySelectorAll("[data-adel]").forEach(b=>b.onclick=()=>{ const x=all[Number(b.dataset.adel)];
-    confirmModal("Delete this task?",esc(x.topic)+" is removed from your Sheet.","Delete",async()=>{ actData=await apiPost({action:"deleteAction",row:x.row,oldTopic:x.topic,oldDate:x.date}); renderFund(); toast("Task deleted."); }); });
+    confirmModal("Delete this task?",esc(x.topic)+" is removed from your Sheet.","Delete",async()=>{ actData=await apiPost({action:"deleteAction",row:x.row,oldTopic:x.topic,oldDate:x.date}); renderWM(); toast("Task deleted."); }); });
 }
 
 function parseTaskLines(t){ return String(t||"").split(/\n/).map(l=>l.replace(/^\s*(?:[-•*]|\d+[.)])\s*/,"").trim()).filter(Boolean).map(l=>{ const m=l.match(/^(.*?)[\s,\-–]*\b(P[0-3])\s*$/i); return m&&m[1].trim()?{topic:m[1].trim(),priority:m[2].toUpperCase()}:{topic:l,priority:"P2"}; }); }
 function renderMeetings(){
-  const el=$("v-fund"); const d=actData||{items:[],meetings:[]};
+  const el=$("v-meet"); const d=actData||{items:[],meetings:[]};
   if(d.error){ el.innerHTML=`<div class="card adminblock"><div class="section-head"><h3>Meetings</h3></div><div class="empty">${esc(d.error)}</div></div>`; return; }
   const ms=d.meetings||[];
   const card=m=>{ const tasks=d.items.filter(x=>x.meeting===m.id);
@@ -1114,7 +1189,7 @@ function renderMeetings(){
   document.querySelectorAll("[data-medit]").forEach(b=>b.onclick=()=>meetingModal(byId(b.dataset.medit)));
   document.querySelectorAll("[data-mtask]").forEach(b=>b.onclick=()=>actionModal(null,byId(b.dataset.mtask)));
   document.querySelectorAll("[data-mdel]").forEach(b=>b.onclick=()=>{ const m=byId(b.dataset.mdel);
-    confirmModal("Delete these minutes?",esc(m.title)+" · "+fmtDate(m.date)+". The tasks created from this meeting stay in the Tasks list.","Delete",async()=>{ actData=await apiPost({action:"deleteMeeting",id:m.id}); renderFund(); toast("Minutes deleted."); }); });
+    confirmModal("Delete these minutes?",esc(m.title)+" · "+fmtDate(m.date)+". The tasks created from this meeting stay in the Tasks list.","Delete",async()=>{ actData=await apiPost({action:"deleteMeeting",id:m.id}); renderWM(); toast("Minutes deleted."); }); });
   document.querySelectorAll("[data-mshare]").forEach(b=>b.onclick=()=>{ const m=byId(b.dataset.mshare), tasks=d.items.filter(x=>x.meeting===m.id);
     const t=`*${(data&&data.config.association)||""} · ${m.title}*\n${fmtDate(m.date)}\n`+(m.decisions?`\n*Decisions*\n${m.decisions}\n`:"")+(tasks.length?`\n*Action items*\n`+tasks.map((x,i)=>`${i+1}. ${x.topic}${x.priority?" ("+x.priority+")":""}${x.target?" - by "+fmtDate(x.target):""}`).join("\n"):"");
     shareModal(t,"Share minutes"); });
@@ -1133,7 +1208,7 @@ function meetingModal(m){
       if(!body.date) throw new Error("Choose the date"); if(!body.title.trim()) throw new Error("Write a title");
       if(m) actData=await apiPost(Object.assign({action:"updateMeeting",id:m.id},body));
       else { body.actions=parseTaskLines($("mTasks").value); actData=await apiPost(Object.assign({action:"addMeeting"},body)); }
-      close(); renderFund(); toast(m?"Minutes updated.":"Minutes saved"+(body.actions&&body.actions.length?" with "+body.actions.length+" action item(s).":"."));
+      close(); renderWM(); toast(m?"Minutes updated.":"Minutes saved"+(body.actions&&body.actions.length?" with "+body.actions.length+" action item(s).":"."));
     }}]});
 }
 function actionModal(x,mtg){
@@ -1150,9 +1225,16 @@ function actionModal(x,mtg){
       const body={topic:$("aTopic").value,desc:$("aDesc").value,date:$("aDate").value,target:$("aTarget").value,priority:$("aPri").value,status:$("aStatus").value,budget:$("aBudget").value,remarks:$("aRem").value};
       if(!body.topic.trim()) throw new Error("Write the topic");
       actData = x ? await apiPost(Object.assign({action:"updateAction",row:x.row,oldTopic:x.topic,oldDate:x.date},body)) : await apiPost(Object.assign({action:"addAction",meeting:mtg?mtg.id:""},body));
-      close(); renderFund(); toast(x?"Item updated.":"Item added.");
+      close(); renderWM(); toast(x?"Item updated.":"Item added.");
     }}]});
 }
+async function loadWorks(){
+  const el=$(view==="meet"?"v-meet":"v-works"); if(!session){ el.innerHTML=""; return; }
+  if(!actData) el.innerHTML='<div class="empty">Loading…</div>';
+  try{ actData=await apiPost({action:"actionItems"}); }catch(e){ actData={error:e.message,items:[],meetings:[]}; }
+  renderWM();
+}
+function renderWM(){ if(view==="works") renderWorks(); else if(view==="meet") renderMeetings(); }
 function tankerCard(){ let h=tankerCardFull(); if(!canEdit()) h=h.replace(/<div class="two">[\s\S]*?<button class="btn" id="tAdd">[^<]*<\/button>/,"").replace(/<button class="btn small ghost danger" data-tdel[^>]*>✕<\/button>/g,""); return h; }
 function tankerCardFull(){
   if(!tankData) return "";
@@ -1162,19 +1244,24 @@ function tankerCardFull(){
     <div class="two"><div class="field"><label for="tDate">Date</label><input type="date" id="tDate" value="${todayISO()}"></div><div class="field"><label for="tKind">Type</label><select id="tKind"><option value="HMWSSB">GHMC / HMWSSB</option><option value="Commercial">Private / Commercial</option></select></div></div>
     <div class="two"><div class="field"><label for="tNo">Token / vehicle no (optional)</label><input id="tNo" maxlength="12" inputmode="text"></div><div class="field"><label for="tCost">Cost ₹</label><input type="number" id="tCost" value="1000" inputmode="decimal"></div></div>
     <div class="field"><label for="tBata">Driver bata ₹</label><input type="number" id="tBata" value="100" inputmode="decimal"></div>
+    ${pickerHTML("tP","Payment screenshot (optional)")}
     <button class="btn" id="tAdd">+ Add tanker</button>
     ${ms.map((m,mi)=>`<div class="section-head" style="margin-top:18px"><h3>${esc(m.label)}</h3><div class="count">${m.trips} trips · ${rs(m.total)}</div></div>
       ${mi>1?"":`<div class="rows" style="max-height:none">${m.entries.map(e=>`<div class="row" style="cursor:default"><span class="ow">${esc(e.token)}<em>${fmtDate(e.date)} · ${rs(e.cost)} + bata ${rs(e.bata)}</em></span><span class="am">${rs(e.total)}</span><button class="btn small ghost danger" data-tdel="${m.month}|${e.row}|${e.date}">✕</button></div>`).join("")}</div>`}`).join("")}</div>`;
 }
 function bindTanker(){
   const add=$("tAdd"); if(!add) return;
+  const getTP=pickerBind("tP",2);
   $("tKind").onchange=()=>{ $("tCost").value = $("tKind").value==="Commercial"?1400:1000; };
   add.onclick=async()=>{
     if(fundBusy) return; fundBusy=true; add.disabled=true;
     try{
       if(!$("tDate").value) throw new Error("Choose the date");
-      tankData = await apiPost({action:"addTanker",date:$("tDate").value,kind:$("tKind").value,tokenNo:$("tNo").value,cost:$("tCost").value,bata:$("tBata").value});
-      try{ fundData=await apiPost({action:"fundStatement"}); }catch(e){} toast("Tanker added to the sheet."); renderFund();
+      const ph=getTP(), tdate=$("tDate").value, ttitle="Tanker "+($("tNo").value||$("tKind").value), tamt=(parseFloat($("tCost").value)||0)+(parseFloat($("tBata").value)||0);
+      tankData = await apiPost({action:"addTanker",date:tdate,kind:$("tKind").value,tokenNo:$("tNo").value,cost:$("tCost").value,bata:$("tBata").value});
+      let tn="Tanker added to the sheet.";
+      if(ph.length){ try{ await apiPost({action:"addRecord",category:"tanker",date:tdate,title:ttitle,amount:tamt,photos:ph.map(d=>({data:d}))}); tn="Tanker added with its screenshot."; }catch(err){ tn="Tanker added, but the screenshot could not be saved: "+err.message; } }
+      try{ fundData=await apiPost({action:"fundStatement"}); }catch(e){} toast(tn); renderFund();
     }catch(e){ toast(e.message,true); }
     fundBusy=false; add.disabled=false;
   };
@@ -1195,12 +1282,17 @@ function bindFundEdit(st){
     confirmModal("Delete this expense?",esc(item)+" · removed from your Google Sheet and the total is recalculated.","Delete",async()=>{ fundApply(await apiPost({action:"deleteExpense",row:Number(row),date,item})); toast("Expense deleted."); });
   });
   const names=[...new Set(fundData.statements.slice(0,3).flatMap(x=>x.expenses.map(e=>e.item)))].filter(n=>!/water\s*tanker\s*utili/i.test(n)).slice(0,60);
-  $("xAdd").onclick=()=>openModal({title:"Add expense",sub:"Saved in the Balance sheet for "+esc(st.label)+".",
-    body:`<div class="field"><label for="xDate">Date</label><input type="date" id="xDate" value="${todayISO()}"></div><div class="field"><label for="xItem">What for</label><input id="xItem" list="xNames" maxlength="80" autocomplete="off"><datalist id="xNames">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist></div><div class="field"><label for="xAmt">Amount (₹)</label><input type="number" id="xAmt" step="0.01" inputmode="decimal"></div>`,
+  let getXP; $("xAdd").onclick=()=>{ openModal({title:"Add expense",sub:"Saved in the Balance sheet for "+esc(st.label)+".",
+    body:`<div class="field"><label for="xDate">Date</label><input type="date" id="xDate" value="${todayISO()}"></div><div class="field"><label for="xItem">What for</label><input id="xItem" list="xNames" maxlength="80" autocomplete="off"><datalist id="xNames">${names.map(n=>`<option value="${esc(n)}">`).join("")}</datalist></div>${pickerHTML("xP","Bill / screenshot (optional)")}<div class="field"><label for="xAmt">Amount (₹)</label><input type="number" id="xAmt" step="0.01" inputmode="decimal"></div>`,
     actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Save",onClick:async close=>{
       const amount=parseFloat($("xAmt").value); if(!$("xDate").value) throw new Error("Choose the date"); if(!$("xItem").value.trim()) throw new Error("Write what it was for"); if(!(amount>0)) throw new Error("Enter an amount");
-      fundApply(await apiPost({action:"addExpense",date:$("xDate").value,item:$("xItem").value,amount})); close(); toast("Expense added.");
+      const ph=getXP(); fundApply(await apiPost({action:"addExpense",date:$("xDate").value,item:$("xItem").value,amount}));
+      let note="Expense added.";
+      if(ph.length){ const it=fundData.statements[0].expenses.find(e=>e.date===$("xDate").value&&e.item.toLowerCase()===$("xItem").value.trim().toLowerCase()&&Math.abs(e.amount-amount)<0.01);
+        try{ await apiPost({action:"addRecord",category:"repair",date:$("xDate").value,title:$("xItem").value,amount,photos:ph.map(d=>({data:d})),expenseKey:it?it.key:""}); await loadFund(); note="Expense added with its bill."; }catch(err){ note="Expense added, but the bill could not be saved: "+err.message; } }
+      close(); toast(note);
     }}]});
+  getXP=pickerBind("xP",3); };
   $("xCash").onclick=()=>openModal({title:"Cash received from bank",sub:"Replaces the cash amount of "+esc(st.label)+". The opening balance updates by itself.",
     body:`<div class="two"><div class="field"><label for="cDate">Date</label><input type="date" id="cDate" value="${todayISO()}"></div><div class="field"><label for="cAmt">Amount (₹)</label><input type="number" id="cAmt" value="${st.cash||""}" inputmode="decimal"></div></div>`,
     actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Save",onClick:async close=>{ fundApply(await apiPost({action:"setCash",date:$("cDate").value,amount:$("cAmt").value})); close(); toast("Cash updated."); }}]});
@@ -1221,18 +1313,32 @@ function bindFundEdit(st){
   };
 }
 function confirmModalOk(title,sub,body,fn){ openModal({title,sub,body,actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Start",onClick:async close=>{ await fn(close); }}]}); }
-function printFund(st,c){
+async function printFund(st,c,withProofs){
   const w=window.open("","_blank"); if(!w){ toast("Allow pop-ups to print, or take a screenshot.",true); return; }
+  let annex="";
+  if(withProofs){
+    w.document.write("<p style='font:16px system-ui;margin:30px'>Preparing the bills and proofs… please wait.</p>");
+    try{
+      const keys=new Set(st.expenses.map(x=>x.key)); const all=(await apiPost({action:"records",month:st.month})).records;
+      const more=[]; for(const x of st.expenses){ if(x.proofs&&!all.some(r=>r.key===x.key)){ more.push(...(await apiPost({action:"records",key:x.key})).records); } }
+      const list=all.concat(more).filter((r,i,a)=>r.category!=="owner"&&a.findIndex(z=>z.id===r.id)===i&&(r.month===st.month||keys.has(r.key)));
+      let parts=[];
+      for(const r of list){ let imgs=""; for(let i=0;i<r.n;i++){ try{ const j=await apiPost({action:"recordFile",id:r.id,i}); imgs+=`<img src="data:image/jpeg;base64,${j.data}">`; }catch(e){ imgs+=`<p style="color:#c00">Photo ${i+1} could not be loaded.</p>`; } }
+        parts.push(`<div class="pf"><b>${esc(r.title)}</b> · ${fmtDate(r.date)}${r.amount?" · "+rs(r.amount):""} · ${esc(CAT_LABEL[r.category]||"")}${r.note?"<br>"+esc(r.note):""}<div>${imgs}</div></div>`); }
+      annex=list.length?`<h2 style="page-break-before:always">Bills and payment proofs · ${esc(st.label)}</h2>${parts.join("")}`:"";
+    }catch(e){ annex=`<p style="color:#c00">Proofs could not be loaded: ${esc(e.message)}</p>`; }
+    w.document.open();
+  }
   const t=(a,b,bold)=>`<tr><td>${esc(a)}</td><td style="text-align:right">${bold?"<b>":""}${rs(b)}${bold?"</b>":""}</td></tr>`;
   const p=st.proj||{items:[]};
-  w.document.write(`<!doctype html><meta charset="utf-8"><title>Fund statement ${esc(st.label)}</title><style>body{font:14px system-ui,sans-serif;margin:28px;color:#111}h1{font-size:20px;margin:0}h2{font-size:15px;margin:20px 0 6px}table{width:100%;border-collapse:collapse}td{border-bottom:1px solid #ddd;padding:6px 4px}</style>
+  w.document.write(`<!doctype html><meta charset="utf-8"><title>Fund statement ${esc(st.label)}</title><style>body{font:14px system-ui,sans-serif;margin:28px;color:#111}h1{font-size:20px;margin:0}h2{font-size:15px;margin:20px 0 6px}table{width:100%;border-collapse:collapse}td{border-bottom:1px solid #ddd;padding:6px 4px}.pf{margin:14px 0;page-break-inside:avoid}.pf img{max-width:100%;max-height:520px;display:block;margin:8px 0;border:1px solid #ccc}</style>
   <h1>${esc(data?data.config.association:"")}</h1><div>Monthly Fund Statement · ${esc(st.label)}</div>
   <h2>Summary</h2><table>${t("Brought forward",st.carry)}${t("Cash received",st.cash)}${t("Available funds",st.opening)}${t("Total expenses",st.totalExpenses)}${t("Closing balance",st.closing,1)}</table>
   <h2>Expenses</h2><table>${st.expenses.map(x=>`<tr><td>${x.date?fmtDate(x.date):""}</td><td>${esc(x.item)}</td><td style="text-align:right">${rs(x.amount)}</td></tr>`).join("")}</table>
   ${p.items.length?`<h2>Projection for ${esc(p.forMonth||"next month")}</h2><table>${p.items.map(x=>t(x.item,x.amount)).join("")}${t("Less: closing balance / adjustment",p.adjust)}${t("Amount requested",p.requested,1)}</table>`:""}
   ${st.variance?`<h2>Projected vs actual</h2><table>${t("Projected expenses",st.variance.projected)}${t("Actual expenses",st.variance.actual)}${t(st.variance.diff>0?"Overspent":"Saved",Math.abs(st.variance.diff),1)}</table>`:""}
   ${c?`<h2>Collection · ${esc(c.label)}</h2><table>${t("Billed",c.billed)}${t("Collected",c.collected)}${t("Pending",c.pending)}<tr><td>Flats paid</td><td style="text-align:right">${c.paidFlats} / ${c.flats} (${c.pct}%)</td></tr></table>`:""}
-  <p style="color:#666;margin-top:24px;font-size:12px">Generated ${new Date().toLocaleDateString("en-IN")}</p><script>setTimeout(function(){print()},300)<\/script>`);
+  ${annex}<p style="color:#666;margin-top:24px;font-size:12px">Generated ${new Date().toLocaleDateString("en-IN")}</p><script>setTimeout(function(){print()},300)<\/script>`);
   w.document.close();
 }
 function renderRequests(){
@@ -1243,9 +1349,9 @@ function renderRequests(){
     return `<article class="post req"><div class="meta"><b>Flat ${esc(k.flat)}</b><span>${esc(f?f.owner:"")}</span><span>Paid on ${fmtDate(k.date)}</span></div>
     <div class="reqamt">${rs(k.amount)}</div>
     <p class="dueline" style="margin:0">UPI / bank reference: <b>${esc(k.ref||"not given")}</b>${c?` · Due before this: ${rs(c.due)}`:""}</p>
-    ${k.photo?`<div class="stack" style="margin-top:8px"><button class="btn small ghost" data-shot="${esc(k.id)}">📎 View payment screenshot</button></div>`:'<p class="dueline" style="margin:4px 0 0">No screenshot attached.</p>'}
+    ${k.photo?`<div class="stack" style="margin-top:8px"><button class="btn small ghost" data-shot="${esc(k.id)}">📎 View payment screenshot</button></div>`:k.photoErr?`<p class="notebox">The owner sent a screenshot but it could not be saved: ${esc(k.photoErr)}. Ask them to send it on WhatsApp, and check Google Drive permission (run authorize in Apps Script).</p>`:'<p class="dueline" style="margin:4px 0 0">No screenshot attached.</p>'}
     ${canEdit()?`<div class="acts"><button class="btn small green" data-claim="approve" data-id="${esc(k.id)}">Approve</button><button class="btn small ghost danger" data-claim="reject" data-id="${esc(k.id)}">Reject</button></div>`:""}</article>`; }).join("");
-  const hist = (adminData.handled||[]).map(k=>`<div class="row" style="cursor:default"><span class="fn">${esc(k.flat)}</span><span class="ow">${esc((byFlat(k.flat)||{}).owner||"")}<em>${fmtDate(k.date)} · Ref ${esc(k.ref||"—")}${k.photo?` · <a href="#" data-shot="${esc(k.id)}">screenshot</a>`:""}</em></span><span class="am"><span class="pill ${k.status==="Approved"?"paid":"rejected"}">${esc(k.status)}</span> ${rs(k.amount)}</span></div>`).join("");
+  const hist = (adminData.handled||[]).map(k=>`<div class="row" style="cursor:default"><span class="fn">${esc(k.flat)}</span><span class="ow">${esc((byFlat(k.flat)||{}).owner||"")}<em>${fmtDate(k.date)} · Ref ${esc(k.ref||"—")}${k.photo?` · <a href="#" data-shot="${esc(k.id)}">screenshot</a>`:""}${k.note?` · Reason: ${esc(k.note)}`:""}</em></span><span class="am"><span class="pill ${k.status==="Approved"?"paid":"rejected"}">${esc(k.status)}</span> ${rs(k.amount)}</span></div>`).join("");
   el.innerHTML = `<div class="section-head"><h3>Payment requests</h3><div class="count">${adminData.claims.length} waiting</div></div>
   <p class="dueline" style="margin:-6px 0 14px">A member tapped "I have paid". Check your Google Pay or bank statement for the reference, then approve. You can change the amount before approving.</p>
   <div class="feed">${cards||'<div class="empty">No requests waiting.</div>'}</div>
@@ -1260,7 +1366,7 @@ function renderAll(){
   const safe = f => { try{ f(); }catch(e){ lastErr=f.name+": "+(e&&e.message||e); console.error(e); const id=f===renderAdmin?"v-admin":f===renderRequests?"v-requests":""; if(id) $(id).innerHTML=`<div class="card adminblock"><div class="section-head"><h3>This page could not be shown</h3></div><p class="dueline" style="color:#c81e45">${esc(lastErr)}</p></div>`; } };
   safe(renderNav); safe(renderHeader);
   if(data){ safe(()=>renderFlats($("search").value)); }
-  [renderResult,renderOverview,renderNotices,renderComplaints,renderAdmin,renderRequests,renderMore,renderUtility,renderMeter,renderFooter].forEach(safe);
+  [renderResult,renderOverview,renderNotices,renderComplaints,renderAdmin,renderRequests,renderMore,renderUtility,renderMeter,renderRecords,renderFooter].forEach(safe);
 }
 
 /* ---------- lookup ---------- */
@@ -1303,6 +1409,8 @@ function editPaymentModal(flat){
       await apiPost({action:"setPayment",token,flat,amount,date:$("eDate").value}); close(); await refresh(true); toast("Payment updated.");
     }}]});
 }
+let myClaimsD=null;
+async function loadMyClaims(){ if(!isMember()){ myClaimsD=null; return; } try{ myClaimsD=(await apiPost({action:"myClaims"})).claims; }catch(e){} try{ renderResult(); }catch(e){} }
 let kShot="";
 function claimModal(note){
   const c = calc(byFlat(selected));
@@ -1318,7 +1426,7 @@ function claimModal(note){
       if(!kShot && !$("kRef").value.trim()) throw new Error("Add the payment screenshot or the reference number");
       const body={action:"addClaim",flat:c.f.flat,amount,date:$("kDate").value,ref:$("kRef").value}; if(kShot) body.photo=kShot;
       const jr=await apiPost(body);
-      close(); await refresh(true); toast(jr.photoFailed?"Sent, but the screenshot could not be saved. Please tell the committee.":"Sent to the committee. Thank you!",!!jr.photoFailed);
+      close(); await refresh(true); toast(jr.photoFailed?"Sent, but the screenshot could not be saved"+(jr.photoReason?" ("+jr.photoReason+")":"")+". Please send it to the committee on WhatsApp.":"Sent to the committee. Thank you!",!!jr.photoFailed);
     }}]});
   $("kAdd").onclick=()=>$("kFile").click();
   $("kFile").onchange=async e=>{ try{ const f=e.target.files[0]; if(f){ kShot=await shrinkImage(f,1400,.8); $("kThumb").innerHTML=`<div class="shotthumb"><img alt="screenshot" src="data:image/jpeg;base64,${kShot}"><span>Screenshot added</span></div>`; $("kAdd").textContent="Change screenshot"; $("mErr").textContent=""; } }catch(err){ $("mErr").textContent=err.message; } e.target.value=""; };
@@ -1383,8 +1491,14 @@ function loginModal(after){
   $("regToggle").onclick=()=>{ reg=!reg; $("lPin2w").hidden=!reg; $("lPin").placeholder=reg?"Choose a PIN (4 to 6 digits)":"PIN"; $("lPin").autocomplete=reg?"new-password":"current-password"; $("regToggle").textContent=reg?"Already registered? Sign in":"New here? Create your PIN"; primary().textContent=reg?"Register":"Sign in"; $("mErr").textContent=""; };
   document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{ mode=b.dataset.m; primary().textContent=mode==="member"&&reg?"Register":"Sign in"; document.querySelectorAll(".seg button").forEach(x=>x.classList.toggle("on",x===b)); $("pm").hidden=mode!=="member"; $("pa").hidden=mode!=="admin"; $("mErr").textContent=""; (mode==="member"?$("lFlat"):$("lUser")).focus(); });
 }
-$("adminBtn").onclick = () => { if(session){ setSession(null); adminData=null; lastClaimCount=null; if(["admin","requests","meter","utility","fund"].includes(view)) view="dues"; renderAll(); updateBadge(); toast("Signed out."); } else loginModal(); };
+$("adminBtn").onclick = () => { if(session){ setSession(null); adminData=null; lastClaimCount=null; if(["admin","requests","meter","utility","fund","works","meet","records"].includes(view)) view="dues"; renderAll(); updateBadge(); toast("Signed out."); } else loginModal(); };
 $("cLoginBtn").onclick = () => loginModal();
+function rejectModal(id){
+  const k=adminData.claims.find(x=>x.id===id); if(!k) return;
+  openModal({title:"Reject payment · Flat "+k.flat,sub:"The owner will see the reason in the app and in the notification.",
+    body:`<div class="field"><label for="rjNote">Reason (optional)</label><textarea id="rjNote" maxlength="200" placeholder="e.g. Amount not received in the bank / wrong screenshot"></textarea></div>`,
+    actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Reject",cls:"danger",onClick:async close=>{ await apiPost({action:"rejectClaim",id,note:$("rjNote").value}); close(); await refresh(true); toast("Request rejected."); }}]});
+}
 function approveModal(id){
   const k = adminData.claims.find(x=>x.id===id); if(!k) return;
   openModal({title:"Approve payment · Flat "+k.flat,sub:`Reference: ${esc(k.ref||"not given")}. Confirm the amount you actually received.`,
@@ -1456,9 +1570,10 @@ document.addEventListener("click",async e=>{
   const cl = e.target.closest("[data-claim]");
   if(cl){
     if(cl.dataset.claim==="approve") return approveModal(cl.dataset.id);
-    if(cl.dataset.sure!=="1"){ cl.dataset.sure="1"; cl.textContent="Tap again to reject"; setTimeout(()=>{cl.dataset.sure="";cl.textContent="Reject";},3000); return; }
-    try{ await apiPost({action:"rejectClaim",id:cl.dataset.id}); await refresh(true); toast("Request rejected."); }catch(err){ toast(err.message,true); } return; }
+    return rejectModal(cl.dataset.id); }
   const sh = e.target.closest("[data-shot]"); if(sh){ e.preventDefault(); return shotModal(sh.dataset.shot); }
+  const pb = e.target.closest("[data-proofs]"); if(pb){ const x=expCur[Number(pb.dataset.proofs)]; if(x) return openProofsByKey(x.key,x.item); }
+  const xp = e.target.closest("[data-xproof]"); if(xp){ const x=expCur[Number(xp.dataset.xproof)]; if(x) return proofModal({key:x.key,title:x.item,amount:x.amount,date:x.date,category:/water\s*tanker\s*utili/i.test(x.item)?"tanker":"repair"},()=>loadFund()); }
   const ep = e.target.closest("[data-editpay]"); if(ep) return editPaymentModal(ep.dataset.editpay);
 });
 $("newNotice").hidden = true;
