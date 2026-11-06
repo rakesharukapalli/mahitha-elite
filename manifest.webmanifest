@@ -1,0 +1,16 @@
+{
+  "name": "Mahitha Elite",
+  "short_name": "Mahitha Elite",
+  "description": "Maintenance dues, notices and complaints for Mahitha Elite apartments",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdf2e0",
+  "theme_color": "#fdf2e0",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
