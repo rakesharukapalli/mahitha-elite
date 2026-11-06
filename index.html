@@ -296,6 +296,31 @@ h1{font-weight:900;letter-spacing:-.8px}.sub{color:var(--soft)}
   .nav button{border-radius:10px}.nav button.on{box-shadow:var(--s2)}
   .hero{border-radius:14px}
 }
+
+/* ===== v21: More page, pay, meter ===== */
+.backbar{display:flex;align-items:center;gap:10px;margin:0 6px 14px 0}
+.backbar button{background:#fff;color:var(--ink);border:2px solid var(--ink);border-radius:10px;box-shadow:var(--s2);font-weight:900;padding:8px 12px;cursor:pointer}
+.backbar b{font-size:15px;color:var(--ink)}
+.moregrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 6px 14px 0}
+.tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;padding:14px;background:#fff;color:var(--ink);border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--s4);cursor:pointer;font:inherit;min-height:104px}
+.tile:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.tile .ti{width:38px;height:38px;border:2px solid var(--ink);border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--gold)}
+.tile:nth-child(3n+2) .ti{background:var(--cyan)}.tile:nth-child(3n) .ti{background:var(--green)}
+.tile .ti svg{width:22px;height:22px;fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tile b{font-size:14px;line-height:1.2}.tile span.sub{font-size:11.5px;color:var(--soft);line-height:1.3}
+.tile .cnt{position:absolute;top:8px;right:8px;background:var(--red,#ff3b5c);color:#fff;border:2px solid var(--ink);border-radius:999px;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900}
+.nav .cnt{pointer-events:none}
+.qrimg{display:block;margin:10px auto;max-width:240px;width:100%;border:2.5px solid var(--ink);border-radius:12px;background:#fff;padding:6px}
+.shotthumb{display:flex;align-items:center;gap:10px;margin-bottom:8px}.shotthumb img{width:64px;height:64px;object-fit:cover;border:2px solid var(--ink);border-radius:8px}
+.shotview{max-width:100%;max-height:70vh;display:block;margin:0 auto;border:2px solid var(--ink);border-radius:10px}
+.calcgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.calcgrid .field{margin:0}
+.calcout{margin-top:12px;border:2.5px solid var(--ink);border-radius:12px;background:var(--cyan);padding:12px}
+.calcout .r{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:14px;color:var(--ink)}.calcout .r b{font-variant-numeric:tabular-nums}
+.calcout .tot{border-top:2px dashed var(--ink);margin-top:6px;padding-top:8px;font-size:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:4px 6px 4px 12px;font-weight:800;font-size:13px;color:var(--ink)}
+.chip button{border:0;background:var(--gold);border-radius:50%;width:22px;height:22px;font-weight:900;cursor:pointer;color:var(--ink)}
+.mflat{display:inline-flex;align-items:center;justify-content:center;min-width:52px;padding:8px 6px;margin:0 6px 8px 0;border:2px solid var(--ink);border-radius:10px;background:#fff;font-weight:900;color:var(--ink);cursor:pointer;font:inherit;font-weight:900}
+.mflat.done{background:var(--green)}.mflat.on{outline:3px solid var(--ink);background:var(--pink)}
 </style>
 </head>
 <body>
@@ -309,7 +334,6 @@ h1{font-weight:900;letter-spacing:-.8px}.sub{color:var(--soft)}
       <button class="sync" id="syncPill" type="button" aria-label="Connection status">● …</button>
       <button class="btn small ghost" id="bellBtn" aria-label="Notifications" title="Notifications" style="position:relative"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg><span id="bellDot" style="display:none;margin-left:4px;color:#0a9d4b">●</span><span class="logo-badge" id="bellCnt" hidden></span></button>
       <button class="btn small ghost" id="langBtn" aria-label="Language" style="font-weight:800">తెలుగు</button>
-      <button class="btn small green" id="installBtn" hidden>Install app</button>
       <button class="btn small ghost" id="adminBtn">Sign in</button>
     </div>
   </header>
@@ -321,6 +345,7 @@ h1{font-weight:900;letter-spacing:-.8px}.sub{color:var(--soft)}
   <div id="offlineBanner" class="banner warn" hidden><div>You are offline. Showing the last saved information.</div></div>
 
   <nav class="nav" id="nav" aria-label="Sections"></nav>
+  <div class="backbar" id="backbar" hidden><button type="button" data-go="more">← More</button><b id="backTitle"></b></div>
 
   <!-- DUES -->
   <section id="v-dues">
@@ -377,6 +402,9 @@ h1{font-weight:900;letter-spacing:-.8px}.sub{color:var(--soft)}
   <section id="v-fund" hidden></section>
   <section id="v-requests" hidden></section>
   <section id="v-admin" hidden></section>
+  <section id="v-more" hidden></section>
+  <section id="v-utility" hidden></section>
+  <section id="v-meter" hidden></section>
 
   <div class="footer" id="footer"></div>
 </div>
@@ -427,10 +455,12 @@ const store = { get(k){ try{return localStorage.getItem(k);}catch(e){return null
 
 let session = null; try{ session = JSON.parse(store.get("mhe_session")||"null"); }catch(e){}
 let data = null, adminData = null, view = "dues", selected = null, token = session ? session.token : "", busy = false;
-const isAdmin = () => !!session && session.role==="admin";
-const canEdit = () => isAdmin() && session.canEdit!==false;
 const isMember = () => !!session && session.role==="member";
-const myFlats = () => isAdmin() ? flats().map(f=>f.flat) : (session ? session.flats : []);
+const isFullAdmin = () => !!session && session.role==="admin";
+const isViewerMember = () => isMember() && !!session.viewer;      /* flat owner with view-only admin rights */
+const isAdmin = () => isFullAdmin() || isViewerMember();          /* sees the admin pages */
+const canEdit = () => isFullAdmin() && session.canEdit!==false;   /* can change data (super admin) */
+const myFlats = () => isFullAdmin() ? flats().map(f=>f.flat) : (session ? session.flats : []);
 function setSession(s){ setTimeout(pushIdentity,0); try{ if(!s){ fundData=null; tankData=null; } }catch(e){} session=s; token=s?s.token:""; if(s) store.set("mhe_session",JSON.stringify(s)); else store.del("mhe_session"); }
 
 /* ---------- API ---------- */
@@ -600,6 +630,7 @@ function afterRefresh(){
 const flats = () => (data ? data.dues : []);
 const byFlat = f => flats().find(x=>x.flat===f);
 function monthLabel(){ if(!data) return ""; const [y,m]=data.config.month.split("-").map(Number); return new Date(y,m-1,1).toLocaleDateString("en-IN",{month:"long",year:"numeric"}); }
+function monthLabelOf(ym){ const [y,m]=String(ym).split("-").map(Number); return new Date(y,m-1,1).toLocaleDateString("en-IN",{month:"long",year:"numeric"}); }
 function refText(flat){ const [y,m]=data.config.month.split("-").map(Number); return flat+" "+new Date(y,m-1,1).toLocaleDateString("en-IN",{month:"short"})+String(y).slice(2); }
 function calc(f){
   const mine = data.payments.filter(p=>p.flat===f.flat);
@@ -632,15 +663,39 @@ const ICONS = {
   requests:'<path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h3"/>',
   admin:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 118 0v3"/>'
 };
-const TABS = [["dues","Dues"],["status","Status"],["notices","Notices"],["help","Complaints"]];
+const MORE_VIEWS = ["notices","help","requests","utility","meter"];
+const VIEW_TITLE = {notices:"Notice board",help:"Complaints & Help",requests:"Payment requests",utility:"Tax & Electricity",meter:"Meter calculator"};
+ICONS.more='<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>';
+ICONS.utility='<path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>';
+ICONS.meter='<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2M16 16h0"/>';
+ICONS.guide='<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1-1.5 2M12 17h0"/>';
+ICONS.install='<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>';
+ICONS.check='<path d="M5 13l4 4L19 7"/>';
+const VIEWS = ["dues","status","notices","help","fund","requests","admin","more","utility","meter"];
+function badgeCounts(){ return { notices:unseenNotices().length, help:unseenComplaints().length, requests:(isAdmin()&&adminData)?adminData.claims.length:0 }; }
 function renderNav(){
-  const tabs = TABS.concat(session?[["fund","Committee"]]:[]).concat(isAdmin()?[["requests","Requests"],["admin","Admin"]]:[]);
-  const claims = isAdmin() && adminData ? adminData.claims.length : 0, un = unseenNotices().length;
-  const uc = unseenComplaints().length; const cnt = k => k==="notices"&&un ? un : k==="requests"&&claims ? claims : k==="help"&&uc ? uc : 0;
-  $("nav").innerHTML = tabs.map(([k,l])=>`<button data-tab="${k}" class="${view===k?"on":""}"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${k==="help"?'<span class="l-long">Complaints</span><span class="l-short">Help</span>':k==="fund"?'<span class="l-long">Committee</span><span class="l-short">Fund</span>':`<span>${l}</span>`}${cnt(k)?`<span class="cnt">${cnt(k)}</span>`:""}</button>`).join("");
-  ["dues","status","notices","help","fund","requests","admin"].forEach(k=>$("v-"+k).hidden = view!==k);
+  const main = [["dues","Dues"],["status","Status"]].concat(session?[["fund","Committee"]]:[]).concat(isAdmin()?[["admin","Admin"]]:[]).concat([["more","More"]]);
+  const bc = badgeCounts(), moreCnt = bc.notices+bc.help+bc.requests;
+  const cnt = k => k==="more" ? moreCnt : k==="admin" ? 0 : 0;
+  const onK = k => k==="more" ? (view==="more"||MORE_VIEWS.includes(view)) : view===k;
+  $("nav").innerHTML = main.map(([k,l])=>`<button data-tab="${k}" class="${onK(k)?"on":""}"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${k==="fund"?'<span class="l-long">Committee</span><span class="l-short">Fund</span>':`<span>${l}</span>`}${cnt(k)?`<span class="cnt">${cnt(k)}</span>`:""}</button>`).join("");
+  VIEWS.forEach(k=>$("v-"+k).hidden = view!==k);
+  const sub = MORE_VIEWS.includes(view); $("backbar").hidden = !sub; if(sub) $("backTitle").textContent = VIEW_TITLE[view]||"";
 }
-function go(v){ if(["admin","requests"].includes(v)&&!isAdmin()) v="dues"; if(v==="fund"&&!session) v="dues"; view=v; renderNav(); if(v==="notices"){ renderNotices(); markSeen(); renderNav(); updateBadge(); } if(v==="help"&&isAdmin()){ markSeenC(); renderNav(); updateBadge(); } if(v==="notices") nlRead(["notice"]); if(v==="help") nlRead(["complaint","reply"]); if(v==="requests") nlRead(["claim"]); if(v==="fund") loadFund(); try{ history.replaceState(null,"","#"+v); }catch(e){} window.scrollTo({top:0}); }
+function renderMore(){
+  const el=$("v-more"); if(!el) return;
+  const bc=badgeCounts();
+  const tiles=[["notices","Notice board","Announcements from the committee",bc.notices],["help","Complaints & Help","Report a problem, see replies",bc.help],["utility","Tax & Electricity","Property tax and power bill numbers",0]];
+  if(isAdmin()) tiles.push(["requests","Payment requests","Check and approve payments",bc.requests],["meter","Meter calculator","Enter water readings",0]);
+  tiles.push(["guide","App guide","How to use this app",0]);
+  if(deferredInstall&&!standalone) tiles.push(["install","Install app","Add to your home screen",0]);
+  if(isAdmin()) tiles.push(["conn","Connection check","Test the link to the sheet",0]);
+  el.innerHTML=`<div class="section-head"><h3>More</h3></div><div class="moregrid">${tiles.map(([k,t,sub,n])=>`<button type="button" class="tile" data-more="${k}"><span class="ti"><svg viewBox="0 0 24 24">${ICONS[k==="conn"?"check":k]}</svg></span><b>${t}</b><span class="sub">${sub}</span>${n?`<span class="cnt">${n}</span>`:""}</button>`).join("")}</div>`;
+}
+document.addEventListener("click",e=>{ const t=e.target.closest("[data-more]"); if(!t) return; const k=t.dataset.more;
+  if(k==="guide") return showWelcome(); if(k==="install") return doInstall(); if(k==="conn") return connectionModal();
+  if(k==="utility"&&!session) return loginModal(); go(k); });
+function go(v){ if(!VIEWS.includes(v)) v="dues"; if(["admin","requests","meter"].includes(v)&&!isAdmin()) v="dues"; if(["fund","utility"].includes(v)&&!session) v="dues"; view=v; renderNav(); if(v==="more") renderMore(); if(v==="notices"){ renderNotices(); markSeen(); renderNav(); updateBadge(); } if(v==="help"&&isAdmin()){ markSeenC(); renderNav(); updateBadge(); } if(v==="notices") nlRead(["notice"]); if(v==="help") nlRead(["complaint","reply"]); if(v==="requests") nlRead(["claim"]); if(v==="fund") loadFund(); if(v==="utility") loadUtility(); if(v==="meter") loadMeter(); try{ history.replaceState(null,"","#"+v); }catch(e){} window.scrollTo({top:0}); }
 $("nav").addEventListener("click",e=>{ const b=e.target.closest("[data-tab]"); if(b) go(b.dataset.tab); });
 
 /* ---------- toast & modal ---------- */
@@ -702,7 +757,7 @@ function renderHeader(){
     <div><span>Water Rate</span><b>${rs(tw?wc/tw:0)} / unit</b></div>
     <div><span>Total Water Cost</span><b>${rs(wc)}</b></div>
     <div><span>Total Fixed Maintenance</span><b>${rs(fx)}</b></div></div>`;
-  $("adminBtn").textContent = isAdmin() ? "Sign out · "+((session&&session.name)||"Admin") : isMember() ? "Sign out · "+session.flats[0] : "Sign in";
+  $("adminBtn").textContent = session ? "Sign out" : "Sign in";
   $("newNotice").hidden = !canEdit();
 }
 function renderFlats(filter){
@@ -726,13 +781,14 @@ function renderResult(){
   const claim = data.claims.filter(k=>k.flat===x.flat)[0];
   const pays = c.mine.slice().sort((a,b)=>a.date.localeCompare(b.date)).map(p=>`<div class="detail"><span>${fmtDate(p.date)}</span><b class="g">${rs(p.amount)}</b></div>`).join("");
   const owns = isMember() && session.flats.includes(x.flat);
-  const claimBtn = owns ? `<button class="btn green" data-act="claim">I have paid</button>` : (!session ? `<button class="btn green" data-act="claim-login">Sign in to report payment</button>` : "");
+  const claimBtn = owns ? `<button class="btn green" data-act="claim">Upload payment screenshot</button>` : (!session ? `<button class="btn green" data-act="claim-login">Sign in to report payment</button>` : "");
   const upiLink = cfg.upi ? `upi://pay?pa=${encodeURIComponent(cfg.upi)}&pn=${encodeURIComponent(cfg.association)}&am=${c.due.toFixed(2)}&cu=INR&tn=${encodeURIComponent(refText(x.flat))}` : "";
   const row = (l,v) => v ? `<div class="copyrow"><div><span>${l}</span><b>${esc(v)}</b></div><button class="btn small ghost" data-copy="${esc(v)}">Copy</button></div>` : "";
   const pay = c.due>0 ? `<div class="paybox"><div class="subhead" style="margin-top:0">How to pay</div>
     <div class="refbox">Write this in the payment note: <b>${esc(refText(x.flat))}</b></div>
     ${row("Google Pay number",cfg.gpay)}${row("UPI ID",cfg.upi)}${row("Account name",cfg.bank.holder)}${row("Account number",cfg.bank.account)}${row("IFSC",cfg.bank.ifsc)}
-    <div class="stack">${upiLink?`<a class="btn" href="${upiLink}">Pay with UPI app</a>`:""}${claimBtn}</div></div>` : "";
+    ${CFG.QR_IMAGE?`<img class="qrimg" src="${esc(CFG.QR_IMAGE)}" alt="Scan to pay" onerror="this.remove()">`:""}
+    <div class="stack">${(upiLink||CFG.QR_IMAGE)?`<button class="btn" data-act="pay">Pay now</button>`:""}${claimBtn}</div></div>` : "";
   el.innerHTML = `<div class="selected">
     <div class="sel-top"><div><div class="label">Flat Number</div><div class="flat-big">${x.flat}</div><div class="owner">${esc(x.owner)}</div></div><span class="pill ${c.status}">${{paid:"Paid",partial:"Part paid",pending:"Pending"}[c.status]}</span></div>
     <div class="amtbox ${c.status}"><div class="amount-label">Amount due</div>
@@ -796,7 +852,7 @@ function renderComplaints(){
     sel.innerHTML = (mine.length===1?"":'<option value="">Choose flat</option>')+mine.map(f=>`<option value="${f}">${f} · ${esc((byFlat(f)||{}).owner||"")}</option>`).join("");
     sel.dataset.sig = sig; if(mine.length===1) sel.value = mine[0];
   }
-  $("cAs").textContent = isAdmin() ? "Posting as admin." : isMember() ? "Posting as "+session.flats.map(f=>"Flat "+f).join(", ")+"." : "";
+  $("cAs").textContent = isFullAdmin() ? "Posting as admin." : isMember() ? "Posting as "+session.flats.map(f=>"Flat "+f).join(", ")+"." : "";
   const el = $("complaintFeed");
   if(!data){ el.innerHTML='<div class="empty">Loading…</div>'; return; }
   const cls = {"Open":"open","In progress":"progress","Resolved":"resolved"};
@@ -836,6 +892,9 @@ async function saveReceiptImage(r,assoc){
 function confirmModal(title,sub,label,fn){
   openModal({title,sub,body:"",actions:[{label:"Cancel",cls:"ghost",cancel:true},{label,cls:"danger",onClick:async close=>{ await fn(); close(); }}]});
 }
+async function setViewer(flat,on){
+  try{ await apiPost({action:"setViewer",flat,on}); await loadAdmin(); renderAll(); toast(on?"Flat "+flat+" now has view-only admin access.":"Access removed for flat "+flat+"."); }catch(err){ toast(err.message,true); }
+}
 function renderAdmin(){
   const el = $("v-admin");
   if(!isAdmin()){ el.innerHTML=""; return; }
@@ -843,12 +902,16 @@ function renderAdmin(){
   const t = totals(), owing = t.all.filter(c=>c.due>0).sort((a,b)=>b.due-a.due);
   const pays = adminData.payments.slice().sort((a,b)=>b.date.localeCompare(a.date)||a.flat.localeCompare(b.flat));
   el.innerHTML = `
-  <div class="card adminblock"><div class="section-head"><h3>Admin tools</h3><div class="count">Signed in as ${esc((session&&session.name)||"Admin")}</div></div>
+  <div class="card adminblock"><div class="section-head"><h3>Admin tools</h3><div class="count">Signed in as ${esc((session&&session.name)||(isMember()?"Flat "+session.flats[0]:"Admin"))}</div></div>
     ${canEdit()?`<div class="stack" style="margin-top:0"><button class="btn" data-act="record">+ Record payment</button><button class="btn green" data-act="remind-all">Send reminder to group</button></div>`:`<p class="dueline" style="margin:0">You have <b>view-only</b> admin access. You can see everything but cannot change data.</p>`}</div>
   <div class="card adminblock"><div class="section-head"><h3>Payment requests</h3><div class="count">${adminData.claims.length} waiting</div></div>
     <button class="btn ${adminData.claims.length?"":"ghost"}" data-go="requests">Open payment requests</button></div>
   <div class="card adminblock"><div class="section-head"><h3>Pending flats · reminders</h3><div class="count">${owing.length} flats</div></div>
     <div class="rows" style="max-height:none">${owing.map(c=>{ const ph=adminData.phones[c.f.flat]; return `<div class="row" style="cursor:default"><span class="fn">${c.f.flat}</span><span class="ow">${esc(c.f.owner)}<em>${rs(c.due)} pending</em></span>${cleanPhone(ph)?`<button class="btn small green" data-act="remind" data-flat="${c.f.flat}">WhatsApp</button>`:`<span class="count">no phone</span>`}</div>`; }).join("")||'<div class="empty">No pending flats.</div>'}</div></div>
+  ${canEdit()?`<div class="card adminblock"><div class="section-head"><h3>View-only access</h3><div class="count">${(adminData.viewers||[]).length} flats</div></div>
+    <p class="dueline" style="margin:-4px 0 10px">Give a flat owner view-only admin access. After signing in with their flat number and PIN they can see all admin pages, but cannot change anything.</p>
+    <div class="chips">${(adminData.viewers||[]).map(f=>`<span class="chip">Flat ${esc(f)}<button type="button" data-act="viewer-rm" data-flat="${esc(f)}" aria-label="Remove">×</button></span>`).join("")||'<span class="dueline">No one yet.</span>'}</div>
+    <div class="field"><label for="vwFlat">Flat number</label><input id="vwFlat" inputmode="numeric" maxlength="3" placeholder="e.g. 302"></div><button class="btn" data-act="viewer-add">Give view-only access</button></div>`:""}
   <div class="card adminblock"><div class="section-head"><h3>Member registrations</h3><div class="count">${Object.keys(adminData.pins||{}).length} flats</div></div>
     <p class="dueline" style="margin:-4px 0 10px">Members register themselves in the app with their flat number and their own PIN. If someone forgets the PIN, tap Reset and they can register again.</p>
     <div class="rows" style="max-height:340px">${Object.keys(adminData.pins||{}).sort().map(f=>{ const x=adminData.pins[f], ow=(byFlat(f)||{}).owner||""; return `<div class="row" style="cursor:default"><span class="fn">${esc(f)}</span><span class="ow">${esc(ow)}<em>${x.changed?"Registered":"Not registered yet"}</em></span>${x.changed?"":`<button class="btn small green" data-act="pinshare" data-flat="${esc(f)}">Invite</button>`}<button class="btn small ghost" data-act="pinreset" data-flat="${esc(f)}">Reset</button></div>`; }).join("")||'<div class="empty">No members yet.</div>'}</div></div>
@@ -857,6 +920,85 @@ function renderAdmin(){
   <p class="dueline" style="text-align:center">All data is stored in your Google Sheet.</p>`;
   if(!canEdit()){ document.querySelectorAll("#v-admin h3").forEach(h=>{ if(/Member registrations/.test(h.textContent)) h.closest(".card").remove(); }); }
 }
+
+/* ---------- property tax & electricity ---------- */
+let utilData=null, utilQ="";
+async function loadUtility(){ utilData=null; renderUtility(); try{ utilData=await apiPost({action:"utilityInfo"}); }catch(e){ utilData={error:e.message}; } renderUtility(); }
+function renderUtility(){
+  const el=$("v-utility"); if(!el) return;
+  if(!session){ el.innerHTML=""; return; }
+  if(!utilData){ el.innerHTML='<div class="empty">Loading…</div>'; return; }
+  if(utilData.error){ el.innerHTML=`<div class="card adminblock"><div class="section-head"><h3>Could not load</h3></div><p class="dueline" style="color:#c81e45">${esc(utilData.error)}</p><button class="btn" data-go="utility">Try again</button></div>`; return; }
+  const row=(l,v)=>v?`<div class="copyrow"><div><span>${l}</span><b>${esc(v)}</b></div><button class="btn small ghost" data-copy="${esc(v)}">Copy</button></div>`:"";
+  const ptax=CFG.PTAX_URL||"https://ptax.ghmc.gov.in/", power=CFG.POWER_URL||"https://tgsouthernpower.org/billinginfo";
+  const q=utilQ.trim().toLowerCase();
+  const list=(utilData.flats||[]).filter(f=>!q||(f.flat+" "+f.owner).toLowerCase().includes(q));
+  const card=f=>`<div class="card adminblock"><div class="section-head"><h3>Flat ${esc(f.flat)}</h3><div class="count">${esc(f.owner)}</div></div>
+    ${f.door?`<p class="dueline" style="margin:-4px 0 6px">Door no. ${esc(f.door)}</p>`:""}
+    ${row("Property tax assessment no.",f.tax)}${row("Electricity USC no.",f.usc)}${row("Electricity service no.",f.service)}
+    ${!(f.tax||f.usc||f.service)?'<p class="dueline">No numbers are saved for this flat yet. Please tell the committee.</p>':""}
+    <div class="stack"><a class="btn" href="${esc(ptax)}" target="_blank" rel="noopener">Pay property tax</a><a class="btn green" href="${esc(power)}" target="_blank" rel="noopener">Pay electricity bill</a></div></div>`;
+  el.innerHTML=`<div class="section-head"><h3>Property tax &amp; Electricity</h3></div>
+  <p class="dueline" style="margin:-6px 0 14px">Copy your number, then tap Pay to open the official website. These payments go directly to the government offices, not to the association. Keep the receipt.</p>
+  ${isAdmin()?`<div class="search" style="margin:0 6px 14px 0"><input id="uSearch" placeholder="Search flat or owner" value="${esc(utilQ)}" autocomplete="off"></div>`:""}
+  ${list.map(card).join("")||'<div class="empty">No flat found.</div>'}
+  ${isAdmin()&&utilData.common&&!q?`<div class="card adminblock"><div class="section-head"><h3>Common area electricity</h3></div>${row("Electricity USC no.",utilData.common.usc)}${row("Electricity service no.",utilData.common.service)}<div class="stack"><a class="btn green" href="${esc(power)}" target="_blank" rel="noopener">Pay electricity bill</a></div></div>`:""}`;
+  const si=$("uSearch"); if(si){ si.oninput=e=>{ utilQ=e.target.value; const pos=e.target.selectionStart; renderUtility(); const n=$("uSearch"); n.focus(); try{ n.setSelectionRange(pos,pos); }catch(x){} }; }
+}
+
+/* ---------- water meter calculator (admin) ---------- */
+let meterD=null, meterFlat="", meterErr="";
+async function loadMeter(){ meterD=null; meterErr=""; renderMeter(); try{ meterD=await apiPost({action:"meterData"}); }catch(e){ meterErr=e.message; } renderMeter(); }
+function meterCalc(f,curr,fix,arr){
+  const md=meterD, prev=f.prev;
+  const newU = f.override ? f.units : Math.max(0,(isNaN(curr)?prev:curr)-prev);
+  const totalNew = md.totalUnits - f.units + newU;
+  const rate = totalNew>0 ? md.waterCost/totalNew : md.rate;
+  const water = rate*newU;
+  return {units:newU, totalUnits:totalNew, rate, water, total:(fix||0)+water+(arr||0)};
+}
+function renderMeter(){
+  const el=$("v-meter"); if(!el) return;
+  if(!isAdmin()){ el.innerHTML=""; return; }
+  if(meterErr){ el.innerHTML=`<div class="card adminblock"><div class="section-head"><h3>Could not load</h3></div><p class="dueline" style="color:#c81e45">${esc(meterErr)}</p><button class="btn" data-go="meter">Try again</button></div>`; return; }
+  if(!meterD){ el.innerHTML='<div class="empty">Loading…</div>'; return; }
+  const md=meterD, done=md.flats.filter(f=>f.curr>f.prev||f.units>0).length;
+  const f=md.flats.find(x=>x.flat===meterFlat);
+  const keep={curr:$("mCurr")?$("mCurr").value:"",fix:$("mFix")?$("mFix").value:"",arr:$("mArr")?$("mArr").value:""};
+  el.innerHTML=`<div class="section-head"><h3>Meter calculator</h3><div class="count">${monthLabelOf(md.month)} · ${done}/${md.flats.length} entered</div></div>
+  <p class="dueline" style="margin:-6px 0 12px">Enter each flat's current water meter reading. The values you save are written to the "${esc(md.tab)}" tab of your Google Sheet.</p>
+  ${md.found?"":`<p class="dueline" style="color:#c81e45">The water totals (cost, units, unit price) were not found in the sheet, so the unit price shown may be 0.</p>`}
+  <div class="card adminblock"><div class="section-head"><h3>This month's water</h3></div>
+    <div class="calcout" style="margin-top:0"><div class="r"><span>Total water cost</span><b>${rs(md.waterCost)}</b></div><div class="r"><span>Total units used</span><b>${new Intl.NumberFormat("en-IN").format(md.totalUnits)}</b></div><div class="r"><span>Unit price (cost ÷ units)</span><b>${rs(md.rate)}</b></div></div></div>
+  <div class="card adminblock"><div class="section-head"><h3>Enter a reading</h3></div>
+    <div class="field"><label for="mFlat">Flat number</label><input id="mFlat" inputmode="numeric" maxlength="3" placeholder="e.g. 302" value="${esc(meterFlat)}" autocomplete="off"></div>
+    <div id="mForm">${f?`<p class="dueline" style="margin:0 0 10px"><b>${esc(f.owner)}</b>${f.remark?` · ${esc(f.remark)}`:""}</p>
+      <div class="calcgrid"><div class="field"><label>Previous reading</label><input id="mPrev" value="${f.prev}" readonly></div><div class="field"><label for="mCurr">Current reading</label><input id="mCurr" type="number" inputmode="decimal" min="${f.prev}" step="1" placeholder="Enter"></div>
+      <div class="field"><label for="mFix">Fixed price (₹)</label><input id="mFix" type="number" inputmode="decimal" step="0.01" value="${f.fixed}"></div><div class="field"><label for="mArr">Arrears (₹)</label><input id="mArr" type="number" inputmode="decimal" step="0.01" value="${f.arrears||0}"></div></div>
+      <div class="calcout" id="mOut"></div>
+      ${f.override?`<p class="dueline" style="margin:8px 0 0">The units for this flat are typed by hand in the sheet (${f.units} units), so they will not change.</p>`:""}
+      ${canEdit()?`<div class="stack"><button class="btn green" id="mSave">Save to Google Sheet</button></div>`:`<p class="dueline" style="margin-top:10px">You have view-only access, so you cannot save.</p>`}`:(meterFlat?'<p class="dueline" style="color:#c81e45">Flat not found.</p>':'<p class="dueline">Type a flat number, or tap a flat below.</p>')}</div></div>
+  <div class="card adminblock"><div class="section-head"><h3>All flats</h3><div class="count">green = reading entered</div></div><div>${md.flats.map(x=>`<button type="button" class="mflat ${x.curr>x.prev||x.units>0?"done":""} ${x.flat===meterFlat?"on":""}" data-mflat="${esc(x.flat)}">${esc(x.flat)}</button>`).join("")}</div></div>`;
+  const fl=md.flats.find(x=>x.flat===meterFlat);
+  if(fl){
+    if(keep.curr!==""&&$("mCurr")) $("mCurr").value=keep.curr; else if($("mCurr")&&fl.curr>fl.prev) $("mCurr").value=fl.curr;
+    if(keep.fix!==""&&keep.curr!=="") $("mFix").value=keep.fix; if(keep.arr!==""&&keep.curr!=="") $("mArr").value=keep.arr;
+    const upd=()=>{ const c=parseFloat($("mCurr").value), fx=parseFloat($("mFix").value)||0, ar=parseFloat($("mArr").value)||0, r=meterCalc(fl,c,fx,ar), bad=!isNaN(c)&&c<fl.prev;
+      $("mOut").innerHTML=bad?`<div class="r" style="color:#c81e45"><span>Current reading cannot be less than the previous reading (${fl.prev}).</span></div>`:
+      `<div class="r"><span>Total units (current − previous)</span><b>${new Intl.NumberFormat("en-IN").format(r.units)}</b></div><div class="r"><span>Unit price</span><b>${rs(r.rate)}</b></div><div class="r"><span>Water charge</span><b>${rs(r.water)}</b></div><div class="r"><span>Fixed price</span><b>${rs(fx)}</b></div><div class="r"><span>Arrears</span><b>${rs(ar)}</b></div><div class="r tot"><span>Total due</span><b>${rs(r.total)}</b></div>`; };
+    ["mCurr","mFix","mArr"].forEach(i=>$(i).oninput=upd); upd();
+    if($("mSave")) $("mSave").onclick=async()=>{
+      const c=parseFloat($("mCurr").value); if(isNaN(c)) return toast("Enter the current reading",true); if(c<fl.prev) return toast("Current reading cannot be less than the previous reading",true);
+      if(busy) return; busy=true; $("mSave").disabled=true; $("mSave").textContent="Saving…";
+      try{ const j=await apiPost({action:"saveReading",flat:fl.flat,curr:c,fixed:parseFloat($("mFix").value),arrears:parseFloat($("mArr").value)||0});
+        meterD=j.data; const done=meterFlat; meterFlat=""; lastRefresh=0; refresh(true); renderMeter(); const nx=$("mFlat"); if(nx) nx.focus(); toast("Saved to the sheet · Flat "+done+(j.notes&&j.notes.length?". "+j.notes[0]:"")); }
+      catch(err){ toast(err.message,true); }
+      busy=false; if($("mSave")){ $("mSave").disabled=false; $("mSave").textContent="Save to Google Sheet"; }
+    };
+  }
+  $("mFlat").oninput=e=>{ const v=e.target.value.replace(/\D/g,"").slice(0,3); e.target.value=v; const n=v.length===3?v:""; if(n!==meterFlat&&(n==="" ? meterFlat!=="" : true)){ meterFlat=n; renderMeter(); const i=$("mFlat"); i.focus(); i.setSelectionRange(v.length,v.length); } };
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-mflat]"); if(!b) return; meterFlat=b.dataset.mflat; renderMeter(); const c=$("mCurr"); if(c){ c.scrollIntoView({block:"center"}); c.focus(); } });
 
 /* ---------- monthly fund statement + water tankers ---------- */
 let fundData=null, fundMonth="", tankData=null, fundBusy=false, actData=null, fundSub="fund", actFilter="active";
@@ -1101,8 +1243,9 @@ function renderRequests(){
     return `<article class="post req"><div class="meta"><b>Flat ${esc(k.flat)}</b><span>${esc(f?f.owner:"")}</span><span>Paid on ${fmtDate(k.date)}</span></div>
     <div class="reqamt">${rs(k.amount)}</div>
     <p class="dueline" style="margin:0">UPI / bank reference: <b>${esc(k.ref||"not given")}</b>${c?` · Due before this: ${rs(c.due)}`:""}</p>
+    ${k.photo?`<div class="stack" style="margin-top:8px"><button class="btn small ghost" data-shot="${esc(k.id)}">📎 View payment screenshot</button></div>`:'<p class="dueline" style="margin:4px 0 0">No screenshot attached.</p>'}
     ${canEdit()?`<div class="acts"><button class="btn small green" data-claim="approve" data-id="${esc(k.id)}">Approve</button><button class="btn small ghost danger" data-claim="reject" data-id="${esc(k.id)}">Reject</button></div>`:""}</article>`; }).join("");
-  const hist = (adminData.handled||[]).map(k=>`<div class="row" style="cursor:default"><span class="fn">${esc(k.flat)}</span><span class="ow">${esc((byFlat(k.flat)||{}).owner||"")}<em>${fmtDate(k.date)} · Ref ${esc(k.ref||"—")}</em></span><span class="am"><span class="pill ${k.status==="Approved"?"paid":"rejected"}">${esc(k.status)}</span> ${rs(k.amount)}</span></div>`).join("");
+  const hist = (adminData.handled||[]).map(k=>`<div class="row" style="cursor:default"><span class="fn">${esc(k.flat)}</span><span class="ow">${esc((byFlat(k.flat)||{}).owner||"")}<em>${fmtDate(k.date)} · Ref ${esc(k.ref||"—")}${k.photo?` · <a href="#" data-shot="${esc(k.id)}">screenshot</a>`:""}</em></span><span class="am"><span class="pill ${k.status==="Approved"?"paid":"rejected"}">${esc(k.status)}</span> ${rs(k.amount)}</span></div>`).join("");
   el.innerHTML = `<div class="section-head"><h3>Payment requests</h3><div class="count">${adminData.claims.length} waiting</div></div>
   <p class="dueline" style="margin:-6px 0 14px">A member tapped "I have paid". Check your Google Pay or bank statement for the reference, then approve. You can change the amount before approving.</p>
   <div class="feed">${cards||'<div class="empty">No requests waiting.</div>'}</div>
@@ -1117,7 +1260,7 @@ function renderAll(){
   const safe = f => { try{ f(); }catch(e){ lastErr=f.name+": "+(e&&e.message||e); console.error(e); const id=f===renderAdmin?"v-admin":f===renderRequests?"v-requests":""; if(id) $(id).innerHTML=`<div class="card adminblock"><div class="section-head"><h3>This page could not be shown</h3></div><p class="dueline" style="color:#c81e45">${esc(lastErr)}</p></div>`; } };
   safe(renderNav); safe(renderHeader);
   if(data){ safe(()=>renderFlats($("search").value)); }
-  [renderResult,renderOverview,renderNotices,renderComplaints,renderAdmin,renderRequests,renderFooter].forEach(safe);
+  [renderResult,renderOverview,renderNotices,renderComplaints,renderAdmin,renderRequests,renderMore,renderUtility,renderMeter,renderFooter].forEach(safe);
 }
 
 /* ---------- lookup ---------- */
@@ -1160,18 +1303,52 @@ function editPaymentModal(flat){
       await apiPost({action:"setPayment",token,flat,amount,date:$("eDate").value}); close(); await refresh(true); toast("Payment updated.");
     }}]});
 }
-function claimModal(){
+let kShot="";
+function claimModal(note){
   const c = calc(byFlat(selected));
   if(!(isMember() && session.flats.includes(c.f.flat))){ toast("You can report payment only for your own flat.",true); return; }
   if(c.due<=0){ toast("No dues pending for this flat.",true); return; }
-  openModal({title:"I have paid",sub:`Flat ${esc(c.f.flat)}. Tell the committee about your payment. It shows as paid once they confirm it.`,
+  kShot="";
+  openModal({title:"I have paid",sub:note||`Flat ${esc(c.f.flat)}. Add your payment screenshot so the committee can confirm. It shows as paid once they approve.`,
     body:`<div class="two"><div class="field"><label for="kAmt">Amount paid (₹)</label><input type="number" id="kAmt" step="0.01" inputmode="decimal" value="${c.due.toFixed(2)}"></div><div class="field"><label for="kDate">Date paid</label><input type="date" id="kDate" value="${todayISO()}"></div></div>
-    <div class="field"><label for="kRef">UPI / bank reference number</label><input id="kRef" maxlength="40" placeholder="From your payment receipt"></div>`,
-    actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Send",onClick:async close=>{
+    <div class="field"><label>Payment screenshot</label><div id="kThumb"></div><button type="button" class="btn small ghost" id="kAdd">+ Add screenshot</button><input type="file" id="kFile" accept="image/*" hidden></div>
+    <div class="field"><label for="kRef">UPI / bank reference number (optional if you add the screenshot)</label><input id="kRef" maxlength="40" placeholder="From your payment receipt"></div>`,
+    actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Send to committee",onClick:async close=>{
       const amount=parseFloat($("kAmt").value); if(!(amount>0)) throw new Error("Enter the amount you paid");
-      await apiPost({action:"addClaim",flat:c.f.flat,amount,date:$("kDate").value,ref:$("kRef").value});
-      close(); await refresh(true); toast("Sent to the committee. Thank you!");
+      if(!kShot && !$("kRef").value.trim()) throw new Error("Add the payment screenshot or the reference number");
+      const body={action:"addClaim",flat:c.f.flat,amount,date:$("kDate").value,ref:$("kRef").value}; if(kShot) body.photo=kShot;
+      const jr=await apiPost(body);
+      close(); await refresh(true); toast(jr.photoFailed?"Sent, but the screenshot could not be saved. Please tell the committee.":"Sent to the committee. Thank you!",!!jr.photoFailed);
     }}]});
+  $("kAdd").onclick=()=>$("kFile").click();
+  $("kFile").onchange=async e=>{ try{ const f=e.target.files[0]; if(f){ kShot=await shrinkImage(f,1400,.8); $("kThumb").innerHTML=`<div class="shotthumb"><img alt="screenshot" src="data:image/jpeg;base64,${kShot}"><span>Screenshot added</span></div>`; $("kAdd").textContent="Change screenshot"; $("mErr").textContent=""; } }catch(err){ $("mErr").textContent=err.message; } e.target.value=""; };
+}
+function payNow(){
+  if(!selected||!data) return;
+  const c=calc(byFlat(selected)), cfg=data.config;
+  if(c.due<=0) return toast("No dues pending for this flat.",true);
+  const link = cfg.upi ? `upi://pay?pa=${encodeURIComponent(cfg.upi)}&pn=${encodeURIComponent(cfg.association)}&am=${c.due.toFixed(2)}&cu=INR&tn=${encodeURIComponent(refText(c.f.flat))}` : "";
+  const mark=()=>store.set("mhe_paying",JSON.stringify({flat:c.f.flat,t:Date.now()}));
+  if(link){ mark(); toast("Opening your UPI app… After paying, come back here to upload the screenshot."); setTimeout(()=>{ location.href=link; },350); return; }
+  const row=(l,v)=>v?`<div class="copyrow"><div><span>${l}</span><b>${esc(v)}</b></div><button class="btn small ghost" data-copy="${esc(v)}">Copy</button></div>`:"";
+  mark();
+  openModal({title:"Pay "+rs(c.due),sub:`Flat ${esc(c.f.flat)}. Scan the QR with any UPI app, or pay to the account below. Write <b>${esc(refText(c.f.flat))}</b> in the note.`,
+    body:`${CFG.QR_IMAGE?`<img class="qrimg" src="${esc(CFG.QR_IMAGE)}" alt="Scan to pay" onerror="this.remove()">`:""}${row("Google Pay number",cfg.gpay)}${row("Account name",cfg.bank.holder)}${row("Account number",cfg.bank.account)}${row("IFSC",cfg.bank.ifsc)}`,
+    actions:[{label:"Close",cls:"ghost",cancel:true},{label:"I have paid",cls:"green",onClick:async close=>{ close(); if(isMember()&&session.flats.includes(c.f.flat)) claimModal(); else loginModal("claim"); }}]});
+}
+/* after paying in the UPI app, the member comes back here: ask for the screenshot */
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden) return;
+  let m=null; try{ m=JSON.parse(store.get("mhe_paying")||"null"); }catch(e){}
+  if(!m) return; store.del("mhe_paying");
+  if(Date.now()-m.t>30*60000||!data||$("modalRoot").innerHTML) return;
+  if(isMember()&&session.flats.includes(m.flat)){ selected=m.flat; renderResult(); setTimeout(()=>claimModal("Welcome back! If you paid, add your payment screenshot so the committee can confirm."),300); }
+  else toast("If you paid, sign in and tap Upload payment screenshot so the committee can confirm.");
+});
+async function shotModal(id){
+  openModal({title:"Payment screenshot",body:`<div id="shotBox" style="text-align:center;color:#6b6358">Loading…</div>`,actions:[{label:"Close",cls:"ghost",cancel:true}]});
+  try{ const j=await apiPost({action:"claimPhoto",id}); $("shotBox").innerHTML=`<img class="shotview" alt="Payment screenshot" src="data:image/jpeg;base64,${j.data}">`; }
+  catch(err){ $("shotBox").innerHTML='<span style="color:#c81e45">'+esc(err.message)+'</span>'; }
 }
 function pinModal(forced,oldPin){
   const known = !!oldPin;
@@ -1193,9 +1370,9 @@ function loginModal(after){
       if(mode==="member"){
         if(reg && $("lPin").value.trim()!==$("lPin2").value.trim()) throw new Error("The two PINs do not match");
         const j = await apiPost({action:reg?"memberRegister":"memberLogin",flat:$("lFlat").value.trim(),pin:$("lPin").value.trim()});
-        setSession({role:"member",token:j.token,flats:j.flats.map(f=>f.flat),mustChange:!!j.mustChange});
+        setSession({role:"member",token:j.token,flats:j.flats.map(f=>f.flat),mustChange:!!j.mustChange,viewer:!!j.viewer}); if(j.viewer){ if(store.get("mhe_seenc")===null) markSeenC(); await loadAdmin(); }
         const pinUsed=$("lPin").value.trim(); nlSync();
-        close(); if(j.mustChange) setTimeout(()=>pinModal(true,pinUsed),50); selected = session.flats[0]; store.set("mhe_flat",selected); renderAll(); toast(reg?"Registered! Remember your PIN. Flat "+session.flats.join(", ")+".":"Signed in. Flat "+session.flats.join(", ")+".");
+        close(); if(j.mustChange) setTimeout(()=>pinModal(true,pinUsed),50); selected = session.flats[0]; store.set("mhe_flat",selected); renderAll(); toast(j.viewer?"Signed in with view-only admin access.":reg?"Registered! Remember your PIN. Flat "+session.flats.join(", ")+".":"Signed in. Flat "+session.flats.join(", ")+".");
         if(after==="claim" && !j.mustChange) claimModal();
       } else {
         const j = await apiPost({action:"login",user:$("lUser").value.trim(),pass:$("lPass").value});
@@ -1206,7 +1383,7 @@ function loginModal(after){
   $("regToggle").onclick=()=>{ reg=!reg; $("lPin2w").hidden=!reg; $("lPin").placeholder=reg?"Choose a PIN (4 to 6 digits)":"PIN"; $("lPin").autocomplete=reg?"new-password":"current-password"; $("regToggle").textContent=reg?"Already registered? Sign in":"New here? Create your PIN"; primary().textContent=reg?"Register":"Sign in"; $("mErr").textContent=""; };
   document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{ mode=b.dataset.m; primary().textContent=mode==="member"&&reg?"Register":"Sign in"; document.querySelectorAll(".seg button").forEach(x=>x.classList.toggle("on",x===b)); $("pm").hidden=mode!=="member"; $("pa").hidden=mode!=="admin"; $("mErr").textContent=""; (mode==="member"?$("lFlat"):$("lUser")).focus(); });
 }
-$("adminBtn").onclick = () => { if(session){ setSession(null); adminData=null; lastClaimCount=null; if(["admin","requests"].includes(view)) view="dues"; renderAll(); updateBadge(); toast("Signed out."); } else loginModal(); };
+$("adminBtn").onclick = () => { if(session){ setSession(null); adminData=null; lastClaimCount=null; if(["admin","requests","meter","utility","fund"].includes(view)) view="dues"; renderAll(); updateBadge(); toast("Signed out."); } else loginModal(); };
 $("cLoginBtn").onclick = () => loginModal();
 function approveModal(id){
   const k = adminData.claims.find(x=>x.id===id); if(!k) return;
@@ -1253,6 +1430,9 @@ document.addEventListener("click",async e=>{
     const a = act.dataset.act;
     if(a==="receipts") return openReceipts(act.dataset.flat).catch(err=>toast(err.message,true));
     if(a==="claim") return claimModal();
+    if(a==="pay") return payNow();
+    if(a==="viewer-add"){ const f=($("vwFlat").value||"").trim().padStart(3,"0"); if(!byFlat(f)) return toast("Enter a valid flat number",true); return setViewer(f,true); }
+    if(a==="viewer-rm") return setViewer(act.dataset.flat,false);
     if(a==="claim-login") return loginModal("claim");
     if(a==="record") return paymentModal(act.dataset.flat);
     if(a==="remind"){ const c=calc(byFlat(act.dataset.flat)); const ph = adminData&&adminData.phones[c.f.flat]; return shareModal(flatReminder(c),"Remind flat "+c.f.flat, cleanPhone(ph)); }
@@ -1278,13 +1458,14 @@ document.addEventListener("click",async e=>{
     if(cl.dataset.claim==="approve") return approveModal(cl.dataset.id);
     if(cl.dataset.sure!=="1"){ cl.dataset.sure="1"; cl.textContent="Tap again to reject"; setTimeout(()=>{cl.dataset.sure="";cl.textContent="Reject";},3000); return; }
     try{ await apiPost({action:"rejectClaim",id:cl.dataset.id}); await refresh(true); toast("Request rejected."); }catch(err){ toast(err.message,true); } return; }
+  const sh = e.target.closest("[data-shot]"); if(sh){ e.preventDefault(); return shotModal(sh.dataset.shot); }
   const ep = e.target.closest("[data-editpay]"); if(ep) return editPaymentModal(ep.dataset.editpay);
 });
 $("newNotice").hidden = true;
 let cPhotos=[];
 function drawThumbs(){ $("cThumbs").innerHTML=cPhotos.map((p,i)=>`<div class="th"><img alt="photo ${i+1}" src="data:image/jpeg;base64,${p}"><button type="button" data-rmphoto="${i}" aria-label="Remove photo">×</button></div>`).join(""); $("cAddPhoto").hidden = cPhotos.length>=2; }
-function shrinkImage(file){ return new Promise((res,rej)=>{ const img=new Image(), url=URL.createObjectURL(file);
-  img.onload=()=>{ const max=1000, k=Math.min(1,max/Math.max(img.width,img.height)), c=document.createElement("canvas"); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext("2d").drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg",.72).split(",")[1]); };
+function shrinkImage(file,mx,q){ return new Promise((res,rej)=>{ const img=new Image(), url=URL.createObjectURL(file);
+  img.onload=()=>{ const max=mx||1000, k=Math.min(1,max/Math.max(img.width,img.height)), c=document.createElement("canvas"); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k); c.getContext("2d").drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg",q||.72).split(",")[1]); };
   img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("Could not read that photo")); }; img.src=url; }); }
 $("cAddPhoto").onclick=()=>$("cFile").click();
 $("cFile").onchange=async e=>{ $("cErr").textContent=""; try{ for(const f of Array.from(e.target.files)){ if(cPhotos.length>=2) break; cPhotos.push(await shrinkImage(f)); } }catch(err){ $("cErr").textContent=err.message; } e.target.value=""; drawThumbs(); };
@@ -1307,13 +1488,13 @@ const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 function installUI(){
   if(standalone) return;
   const dismissed = store.get("mhe_dismiss")==="1";
-  if(deferredInstall){ $("installBtn").hidden=false; $("installBanner").hidden=dismissed; }
+  if(deferredInstall){ $("installBanner").hidden=dismissed; }
   else if(isIOS){ $("iosBanner").hidden=dismissed; }
 }
 window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredInstall=e; installUI(); });
-window.addEventListener("appinstalled",()=>{ deferredInstall=null; $("installBtn").hidden=true; $("installBanner").hidden=true; toast("App installed."); });
-async function doInstall(){ if(!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall=null; $("installBtn").hidden=true; $("installBanner").hidden=true; }
-$("installBtn").onclick = doInstall; $("installBtn2").onclick = doInstall;
+window.addEventListener("appinstalled",()=>{ deferredInstall=null; $("installBanner").hidden=true; toast("App installed."); renderMore(); });
+async function doInstall(){ if(!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall=null; $("installBanner").hidden=true; renderMore(); }
+$("installBtn2").onclick = doInstall;
 document.addEventListener("click",e=>{ const d=e.target.closest("[data-dismiss]"); if(d){ if(d.dataset.dismiss==="push"){ store.set("mhe_pushno","1"); $("pushBanner").hidden=true; } else { store.set("mhe_dismiss","1"); $("iosBanner").hidden=true; } } });
 
 /* ---------- phone push notifications (OneSignal) ---------- */
@@ -1397,7 +1578,7 @@ installUI();
 
 /* ---------- start ---------- */
 (function start(){
-  const h = location.hash.replace("#",""); if(["dues","status","notices","help"].includes(h)) view=h; if(h==="fund"&&session) setTimeout(()=>go("fund"),0);
+  const h = location.hash.replace("#",""); if(["dues","status","notices","help","more"].includes(h)) view=h; if(h==="fund"&&session) setTimeout(()=>go("fund"),0);
   if(!CONNECTED){ $("setupBanner").hidden=false; renderAll(); return; }
   try{ const c=store.get("mhe_data"); if(c) data=JSON.parse(c); }catch(e){}
   if(data){ const f=store.get("mhe_flat"); if(f&&byFlat(f)) selected=f; }
