@@ -824,6 +824,7 @@ function renderResult(){
     ${x.remark?`<div class="notice">⚠ ${esc(x.remark)}</div>`:""}
     ${pay}
     ${(owns||isAdmin())&&c.paid>0?`<div class="stack"><button class="btn ghost" data-act="receipts" data-flat="${x.flat}">🧾 Payment receipts</button></div>`:""}
+    ${(owns||isAdmin())?`<div class="stack"><button class="btn ghost" data-act="history" data-flat="${x.flat}">🕘 Past months</button></div>`:""}
     ${isAdmin()?(()=>{ const ph=cleanPhone(adminData&&adminData.phones[x.flat]); return ph?`<div class="stack"><a class="btn green" href="https://wa.me/91${ph}" target="_blank" rel="noopener">WhatsApp ${esc(x.owner.split(" ")[0]||"")}</a><a class="btn ghost" href="tel:+91${ph}">📞 Call</a></div>`:`<div class="dueline">No valid phone number for this flat in the Sheet.</div>`; })():""}
     ${isAdmin()?`<div class="stack">${canEdit()?`<button class="btn" data-act="record" data-flat="${x.flat}">+ Record payment</button>`:""}${c.due>0?`<button class="btn ghost" data-act="remind" data-flat="${x.flat}">Remind on WhatsApp</button>`:""}</div>`:""}
   </div>`;
@@ -877,6 +878,13 @@ function renderComplaints(){
     ${c.response?`<div class="reply"><small>Committee reply · ${fmtDate(c.responseDate)}</small>${esc(c.response)}</div>`:""}
     ${isAdmin()?`<div class="acts">${canEdit()?`<button class="btn small" data-reply="${esc(c.id)}">Reply / update</button>`:""}<button class="btn small green" data-share-complaint="${esc(c.id)}">Share on WhatsApp</button>${canEdit()?`<button class="btn small ghost danger" data-del-complaint="${esc(c.id)}">Delete</button>`:""}</div>`:""}</article>`).join("")
     : '<div class="empty">No complaints. All good!</div>');
+}
+async function openHistory(flat){
+  const j=await apiPost({action:"duesHistory",flat});
+  const rows=j.months.map(m=>`<div class="rec"><div class="t"><span>${esc(m.label)}</span><span class="${m.balance>0?"r":"g"}">${m.balance<0?rs(-m.balance)+" credit":m.balance>0?rs(m.balance)+" due":"Cleared"}</span></div><div class="m">Billed ${rs(m.total)} · Paid ${rs(m.paid)}${m.date?" · last on "+fmtDate(m.date):""}</div></div>`).join("");
+  openModal({title:"Past months · Flat "+esc(j.flat),sub:"Last 6 months. Total includes any old balance carried forward (Arrears).",
+    body:j.months.length?`${rows}<p class="dueline" style="margin-top:10px">Balance left in a month is added to the next month as Arrears, so do not add the balances together.</p>`:'<div class="empty">No earlier months found.</div>',
+    actions:[{label:"Close",cls:"ghost",cancel:true}]});
 }
 async function openReceipts(flat){
   const j = await apiPost({action:"receipts",flat});
@@ -1411,21 +1419,20 @@ function editPaymentModal(flat){
 }
 let myClaimsD=null;
 async function loadMyClaims(){ if(!isMember()){ myClaimsD=null; return; } try{ myClaimsD=(await apiPost({action:"myClaims"})).claims; }catch(e){} try{ renderResult(); }catch(e){} }
-let kShot="", kWarn=false;
+let kShot="";
 function claimModal(note){
   const c = calc(byFlat(selected));
   if(!(isMember() && session.flats.includes(c.f.flat))){ toast("You can report payment only for your own flat.",true); return; }
   if(c.due<=0){ toast("No dues pending for this flat.",true); return; }
-  kShot=""; kWarn=false;
-  openModal({title:"I have paid",sub:note||`Flat ${esc(c.f.flat)}. Add your payment screenshot so the committee can confirm. It shows as paid once they approve.`,
+  kShot="";
+  openModal({title:"I have paid",sub:note||`Flat ${esc(c.f.flat)}. Payment screenshot is required so the committee can confirm. It shows as paid once they approve.`,
     body:`<div class="two"><div class="field"><label for="kAmt">Amount paid (₹)</label><input type="number" id="kAmt" step="0.01" inputmode="decimal" value="${c.due.toFixed(2)}"></div><div class="field"><label for="kDate">Date paid</label><input type="date" id="kDate" value="${todayISO()}"></div></div>
-    <div class="field"><label>Payment screenshot</label><div id="kThumb"></div><button type="button" class="btn small ghost" id="kAdd">+ Add screenshot</button><input type="file" id="kFile" accept="image/*" hidden></div>
-    <div class="field"><label for="kRef">UPI / bank reference number (optional if you add the screenshot)</label><input id="kRef" maxlength="40" placeholder="From your payment receipt"></div>`,
+    <div class="field"><label>Payment screenshot (required)</label><div id="kThumb"></div><button type="button" class="btn small ghost" id="kAdd">+ Add screenshot</button><input type="file" id="kFile" accept="image/*" hidden></div>
+    <div class="field"><label for="kRef">UPI / bank reference number (optional)</label><input id="kRef" maxlength="40" placeholder="From your payment receipt"></div>`,
     actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Send to committee",onClick:async close=>{
       const amount=parseFloat($("kAmt").value); if(!(amount>0)) throw new Error("Enter the amount you paid");
       if($("kThumb").textContent.includes("Preparing")) throw new Error("Please wait, the screenshot is being prepared");
-      if(!kShot && !kWarn){ kWarn=true; throw new Error("No screenshot added yet. Tap '+ Add screenshot'. To send without it, tap Send again."); }
-      if(!kShot && !$("kRef").value.trim()) throw new Error("Add the payment screenshot or the reference number");
+      if(!kShot) throw new Error("Payment screenshot is required. Tap '+ Add screenshot'.");
       const body={action:"addClaim",flat:c.f.flat,amount,date:$("kDate").value,ref:$("kRef").value}; if(kShot) body.photo=kShot;
       const jr=await apiPost(body);
       close(); await refresh(true); toast(jr.photoFailed?"Sent, but the screenshot could not be saved"+(jr.photoReason?" ("+jr.photoReason+")":"")+". Please send it to the committee on WhatsApp.":"Sent to the committee. Thank you!",!!jr.photoFailed);
@@ -1546,6 +1553,7 @@ document.addEventListener("click",async e=>{
   const act = e.target.closest("[data-act]");
   if(act){
     const a = act.dataset.act;
+    if(a==="history") return openHistory(act.dataset.flat).catch(err=>toast(err.message,true));
     if(a==="receipts") return openReceipts(act.dataset.flat).catch(err=>toast(err.message,true));
     if(a==="claim") return claimModal();
     if(a==="pay") return payNow();
