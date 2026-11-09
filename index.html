@@ -673,7 +673,7 @@ const ICONS = {
   requests:'<path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h3"/>',
   admin:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 118 0v3"/>'
 };
-const MORE_VIEWS = ["notices","help","requests","utility","meter","works","meet","records"];
+const MORE_VIEWS = ["notices","help","requests","utility","meter","works","meet"];
 const VIEW_TITLE = {notices:"Notice board",help:"Complaints & Help",requests:"Payment requests",utility:"Tax & Electricity",meter:"Meter calculator",works:"Tasks",meet:"Meetings",records:"Records & proofs"};
 ICONS.more='<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>';
 ICONS.utility='<path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>';
@@ -688,7 +688,7 @@ function renderNav(){
   const main = [["dues","Dues"],["status","Status"]].concat(session?[["fund","Committee"]]:[]).concat(isAdmin()?[["admin","Admin"]]:[]).concat([["more","More"]]);
   const bc = badgeCounts(), moreCnt = bc.notices+bc.help+bc.requests;
   const cnt = k => k==="more" ? moreCnt : k==="admin" ? 0 : 0;
-  const onK = k => k==="more" ? (view==="more"||MORE_VIEWS.includes(view)) : view===k;
+  const onK = k => k==="more" ? (view==="more"||MORE_VIEWS.includes(view)) : k==="admin" ? (view==="admin"||view==="records") : view===k;
   $("nav").innerHTML = main.map(([k,l])=>`<button data-tab="${k}" class="${onK(k)?"on":""}"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${k==="fund"?'<span class="l-long">Committee</span><span class="l-short">Fund</span>':`<span>${l}</span>`}${cnt(k)?`<span class="cnt">${cnt(k)}</span>`:""}</button>`).join("");
   VIEWS.forEach(k=>$("v-"+k).hidden = view!==k);
   const sub = MORE_VIEWS.includes(view); $("backbar").hidden = !sub; if(sub) $("backTitle").textContent = VIEW_TITLE[view]||"";
@@ -700,7 +700,7 @@ function renderMore(){
     ["Community",[["notices","Notice board","Announcements from the committee",bc.notices],["help","Complaints & Help","Report a problem, see replies",bc.help],["utility","Tax & Electricity","Property tax and power bill numbers",0]]]
   ];
   if(session) grp.push(["Committee work",[["works","Tasks","Work items and who does them",0],["meet","Meetings","Minutes and decisions",0]]]);
-  if(isAdmin()) grp.push(["Admin tools",[["requests","Payment requests","Check and approve payments",bc.requests],["meter","Meter calculator","Enter water readings",0],["records","Records & proofs","Bills and payment screenshots",0]]]);
+  if(isAdmin()) grp.push(["Admin tools",[["requests","Payment requests","Check and approve payments",bc.requests],["meter","Meter calculator","Enter water readings",0]]]);
   const app=[["guide","App guide","How to use this app",0]];
   if(deferredInstall&&!standalone) app.push(["install","Install app","Add to your home screen",0]);
   if(isAdmin()) app.push(["conn","Connection check","Test the link to the sheet",0]);
@@ -943,13 +943,14 @@ function memberModal(f){
       ...(x.changed?[{label:"Reset PIN",cls:"ghost",onClick:async close=>{ close(); if(!confirm("Reset registration for flat "+f+"?")) return; try{ await apiPost({action:"resetPin",flat:f}); await loadAdmin(); renderAll(); toast("Flat "+f+" can register again."); }catch(err){ toast(err.message,true); } }}]:[]),
       ...(!sup&&canEdit()?[{label:isV?"Remove admin access":"Make admin (view-only)",cls:"ghost",onClick:async close=>{ close(); await setViewer(f,!isV); }}]:[])]});
 }
+function adminSwitch(cur){ return `<div class="seg" style="margin:0 0 12px"><button type="button" data-go="admin" class="${cur==="admin"?"on":""}">Collections</button><button type="button" data-go="records" class="${cur==="records"?"on":""}">Expenses &amp; bills</button></div>`; }
 function renderAdmin(){
   const el = $("v-admin");
   if(!isAdmin()){ el.innerHTML=""; return; }
   if(!data||!adminData){ el.innerHTML=(adminErr||lastErr)?`<div class="card adminblock"><div class="section-head"><h3>Admin tools could not load</h3></div><p class="dueline" style="color:#c81e45">${esc(adminErr||lastErr)}</p><p class="dueline">This usually means a setting in Apps Script is wrong (for example DATA_SHEET_ID) or the new version was not deployed. Fix it, then tap Try again.</p><button class="btn" id="adminRetry">Try again</button> <button class="btn ghost" id="adminCheck">Check connection</button></div>`:'<div class="empty">Loading admin tools…</div>'; const rb=$("adminRetry"); if(rb) rb.onclick=async()=>{ await loadAdmin(); renderAll(); }; const ck=$("adminCheck"); if(ck) ck.onclick=connectionModal; return; }
   const t = totals(), owing = t.all.filter(c=>c.due>0).sort((a,b)=>b.due-a.due);
   const pays = adminData.payments.slice().sort((a,b)=>b.date.localeCompare(a.date)||a.flat.localeCompare(b.flat));
-  el.innerHTML = `
+  el.innerHTML = adminSwitch("admin") + `
   <div class="card adminblock"><div class="section-head"><h3>Admin tools</h3><div class="count">Signed in as ${esc((session&&session.name)||(isMember()?"Flat "+session.flats[0]:"Admin"))}</div></div>
     ${canEdit()?`<div class="stack" style="margin-top:0"><button class="btn" data-act="record">+ Record payment</button><button class="btn green" data-act="remind-all">Send reminder to group</button></div>`:`<p class="dueline" style="margin:0">You have <b>view-only</b> admin access. You can see everything but cannot change data.</p>`}</div>
   <div class="card adminblock"><div class="section-head"><h3>Payment requests</h3><div class="count">${adminData.claims.length} waiting</div></div>
@@ -1052,16 +1053,16 @@ document.addEventListener("click",e=>{ const b=e.target.closest("[data-mflat]");
 /* ---------- records & proofs (admin) ---------- */
 let recD=null, recCat="all", recMonth="", recErr="";
 function recMonths(){ const out=[], d=new Date(); const am=data&&data.config&&data.config.month; if(am) out.push(am); for(let i=0;i<8;i++){ const x=new Date(d.getFullYear(),d.getMonth()-i,1); const k=x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0"); if(!out.includes(k)) out.push(k); } return out.sort().reverse(); }
-let recSyncAt=0, recSyncNote="";
+let recSyncAt=0, recSyncNote="", recSyncInfo="";
 async function syncDrive(manual){
   if(!canEdit()) return;
   if(!manual && Date.now()-recSyncAt<60000) return;
-  try{ const j=await apiPost({action:"syncRecords"}); recSyncAt=Date.now(); recSyncNote=j.error?("Drive folder problem: "+j.error):"";
+  try{ const j=await apiPost({action:"syncRecords"}); recSyncAt=Date.now(); recSyncNote=j.error?("Drive folder problem: "+j.error):""; recSyncInfo="Drive check: "+j.scanned+" picture(s) found in the 3 folders, "+(j.added||0)+" new added just now.";
     if(manual) toast(j.added?(j.added+" new file(s) found in your Drive folders and added."):"Already up to date ("+j.scanned+" files checked).");
     else if(j.added) toast(j.added+" file(s) from your Drive folders added to Records."); }
-  catch(e){ recSyncNote="Could not read the Drive folders: "+e.message; if(manual) toast(e.message,true); }
+  catch(e){ recSyncInfo=""; recSyncNote="Could not read the Drive folders: "+e.message+(/unknown action/i.test(e.message)?" (the new Code.gs is not deployed yet: paste it in Apps Script, then Deploy > Manage deployments > pencil > New version)":""); if(manual) toast(e.message,true); }
 }
-async function loadRecords(manual){ if(!recMonth) recMonth=(data&&data.config&&data.config.month)||recMonths()[0]; recErr=""; recD=null; renderRecords(); await syncDrive(manual===true); try{ recD=await apiPost({action:"records",month:recMonth==="all"?"":recMonth,folders:true}); }catch(e){ recErr=e.message; } renderRecords(); }
+async function loadRecords(manual){ if(!recMonth) recMonth="all"; recErr=""; recD=null; renderRecords(); await syncDrive(manual===true); try{ recD=await apiPost({action:"records",month:recMonth==="all"?"":recMonth,folders:true}); }catch(e){ recErr=e.message; } renderRecords(); }
 function editRecModal(r){
   const own=r.kind==="claim";
   openModal({title:own?"Edit note · Flat "+esc(r.flat):"Edit record",sub:own?"You can add a committee note to this screenshot. The payment amount and dues are not changed here.":"",
@@ -1076,7 +1077,7 @@ function renderRecords(){
   const el=$("v-records"); if(!el) return;
   if(!isAdmin()){ el.innerHTML=""; return; }
   if(recErr){ el.innerHTML=`<div class="card adminblock"><div class="section-head"><h3>Could not load</h3></div><p class="dueline" style="color:#c81e45">${esc(recErr)}</p><button class="btn" data-go="records">Try again</button></div>`; return; }
-  if(!recD){ el.innerHTML='<div class="empty">Loading…</div>'; return; }
+  if(!recD){ el.innerHTML=adminSwitch("records")+'<div class="empty">Loading…</div>'; return; }
   const list=recD.records.filter(r=>recCat==="all"||r.category===recCat), f=recD.folders||{};
   const tabs=[["all","All"],["owner","Maintenance"],["tanker","Tanker"],["repair","Activities"]];
   const links=(recCat==="all"?["owner","tanker","repair"]:[recCat]).filter(k=>f[k]).map(k=>`<a class="btn small tiny ghost" href="${esc(f[k])}" target="_blank" rel="noopener">📁 ${esc(CAT_LABEL[k])} ↗</a>`).join("");
@@ -1087,17 +1088,18 @@ function renderRecords(){
     return `<div class="rec"><div class="t"><span>${head}</span><span>${!own&&r.amount?rs(r.amount):""}</span></div><div class="m">${meta}</div>
     <div class="stack acts" style="margin-top:0"><button class="btn small tiny ghost" data-rview="${esc(r.id)}">📎 View</button>${canEdit()?`<button class="btn small tiny ghost" data-redit="${esc(r.id)}">✎ Edit</button><button class="btn small tiny ghost danger" data-rdel="${esc(r.id)}">🗑 Delete</button>`:""}</div></div>`;
   };
-  el.innerHTML=`<div class="section-head"><h3>Records &amp; proofs</h3></div>
-  <p class="dueline" style="margin:-6px 0 12px">Owner payment screenshots and bills are kept here by month, and also saved in Google Drive. They show against the matching expense in the Fund statement.</p>
+  el.innerHTML=adminSwitch("records")+`<div class="section-head"><h3>Expenses &amp; bills</h3></div>
+  <p class="dueline" style="margin:-6px 0 12px">Owner maintenance payments, water tanker bills and development activities. Everything is kept here by month and also saved in Google Drive.</p>
   <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap"><div class="field" style="max-width:220px;margin:0"><label for="rcMonth">Month</label><select id="rcMonth"><option value="all" ${recMonth==="all"?"selected":""}>All months</option>${recMonths().map(m=>`<option value="${m}" ${m===recMonth?"selected":""}>${monthLabelOf(m)}</option>`).join("")}</select></div>${canEdit()?`<button class="btn" id="rcAdd">+ Add bill / screenshot</button><button class="btn ghost" id="rcSync">↻ Sync from Drive</button>`:""}</div>
   <div class="seg" id="rcTabs" style="margin:12px 6px 8px 0">${tabs.map(([k,l])=>`<button data-rc="${k}" class="${recCat===k?"on":""}">${l}</button>`).join("")}</div>
+  ${recSyncInfo?`<p class="dueline" style="margin:0 6px 10px 0">${esc(recSyncInfo)}</p>`:""}${recSyncNote?`<p class="notebox">${esc(recSyncNote)}</p>`:""}
   ${list.map(card).join("")||'<div class="empty">Nothing saved for this month yet. Pick "All months" above to see every month.</div>'}
-  ${recSyncNote?`<p class="notebox">${esc(recSyncNote)}</p>`:""}${recD.folderErr?`<p class="notebox">The Drive folders could not be created: ${esc(recD.folderErr)}. In Apps Script run <b>authorize</b> once and click Allow, then Deploy &gt; New version. Open Connection check to see the exact step that fails.</p>`:""}
+  ${recD.folderErr?`<p class="notebox">The Drive folders could not be created: ${esc(recD.folderErr)}. In Apps Script run <b>authorize</b> once and click Allow, then Deploy &gt; New version. Open Connection check to see the exact step that fails.</p>`:""}
   <div class="card adminblock" style="margin-top:14px"><div class="section-head"><h3>Google Drive folders</h3></div><p class="dueline" style="margin:-4px 0 10px">Open a folder in Drive to see or share the original files.</p><div class="stack" style="margin-top:0">${["owner","tanker","repair"].map(k=>f[k]?`<a class="btn small tiny ghost" href="${esc(f[k])}" target="_blank" rel="noopener">📁 ${esc(CAT_LABEL[k])} ↗</a>`:"").join("")||'<span class="dueline">Folders appear after the first upload.</span>'}</div></div>`;
   $("rcMonth").onchange=e=>{ recMonth=e.target.value; loadRecords(); };
   $("rcTabs").onclick=e=>{ const b=e.target.closest("[data-rc]"); if(b){ recCat=b.dataset.rc; renderRecords(); } };
   if($("rcSync")) $("rcSync").onclick=()=>loadRecords(true);
-  if($("rcAdd")) $("rcAdd").onclick=()=>proofModal({date:(recMonth==="all"||recMonth===todayISO().slice(0,7))?todayISO():recMonth+"-01"},()=>loadRecords());
+  if($("rcAdd")) $("rcAdd").onclick=()=>proofModal({category:recCat==="all"?"":recCat,date:(recMonth==="all"||recMonth===todayISO().slice(0,7))?todayISO():recMonth+"-01"},()=>loadRecords());
   el.querySelectorAll("[data-rview]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.rview); if(r) proofGallery([r],r.title); });
   el.querySelectorAll("[data-rdel]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.rdel); if(!r) return;
     if(r.kind==="claim") return confirmModal("Delete this screenshot?","Only the screenshot is removed (also from your Google Drive folder). The payment and the flat's dues stay as they are.","Delete screenshot",async()=>{ await apiPost({action:"deleteProof",id:r.id}); toast("Screenshot deleted."); loadRecords(); });
@@ -1106,14 +1108,18 @@ function renderRecords(){
 }
 
 /* ---------- monthly fund statement + water tankers ---------- */
+let tankProofs=[];
 let fundData=null, fundMonth="", tankData=null, fundBusy=false, actData=null, fundSub="fund", actFilter="active";
 async function loadFund(){
   const el=$("v-fund"); if(!session){ el.innerHTML=""; return; }
   if(!fundData) el.innerHTML='<div class="empty">Loading statement…</div>';
   try{
+    await syncDrive(false);
     const tp = isAdmin() ? apiPost({action:"tankers"}).catch(e=>({error:e.message})) : null;
+    const tpr = isAdmin() ? apiPost({action:"records",category:"tanker",month:""}).catch(()=>null) : null;
     fundData = await apiPost({action:"fundStatement"}); syncIssue("fund","");
     if(tp) tankData = await tp;
+    if(tpr){ const rj=await tpr; tankProofs=(rj&&rj.records)||[]; }
     if(!fundData.statements.some(x=>x.month===fundMonth)) fundMonth = (fundData.statements[0]||{}).month||"";
     renderFund();
   }catch(e){ syncIssue("fund",e.message); el.innerHTML='<div class="empty">Could not load the statement. '+esc(e.message)+'<br><br><button class="btn small" id="fundCheck">Check connection</button></div>'; const fc=$("fundCheck"); if(fc) fc.onclick=connectionModal; }
@@ -1141,19 +1147,31 @@ async function proofGallery(items,title){
 async function openProofsByKey(key,title){ try{ const j=await apiPost({action:"records",key}); proofGallery(j.records,title); }catch(err){ toast(err.message,true); } }
 function proofModal(pre,after){
   pre=pre||{};
-  openModal({title:"Add bill / screenshot",sub:"Saved privately in your Google Drive folder and shown against the expense.",
-    body:`<div class="field"><label for="rcCat">Type</label><select id="rcCat"><option value="repair">Repairs, renewals, materials</option><option value="tanker">Water tanker payment</option></select></div>
+  openModal({title:"Add bill / screenshot",sub:"Saved privately in your Google Drive folder. For Maintenance, this also records the owner's payment and updates the flat's dues.",
+    body:`<div class="field"><label for="rcCat">Type</label><select id="rcCat"><option value="owner">Maintenance (owner payment)</option><option value="tanker">Water tanker</option><option value="repair">Activities (repairs, renewals, materials)</option></select></div>
+    <div id="rcOwn"><div class="field"><label for="rcFlat">Flat</label><select id="rcFlat">${flats().map(f=>`<option value="${f.flat}">${f.flat} — ${esc(f.owner)}</option>`).join("")}</select></div><div class="hint" id="rcHint"></div>
+    <div class="two"><div class="field"><label for="rcMode">Mode</label><select id="rcMode"><option value="">Not specified</option><option>UPI</option><option>Cash</option><option>Bank transfer</option><option>Cheque</option></select></div><div class="field"><label for="rcRef">Reference / UTR</label><input id="rcRef" maxlength="40"></div></div></div>
     <div class="two"><div class="field"><label for="rcDate">Date</label><input type="date" id="rcDate" value="${esc(pre.date||todayISO())}"></div><div class="field"><label for="rcAmt">Amount (₹)</label><input type="number" id="rcAmt" inputmode="decimal" value="${pre.amount||""}"></div></div>
-    <div class="field"><label for="rcTitle">What is it for</label><input id="rcTitle" maxlength="80" value="${esc(pre.title||"")}" placeholder="e.g. Motor repair bill"></div>
+    <div class="field" id="rcTitleF"><label for="rcTitle">What is it for</label><input id="rcTitle" maxlength="80" value="${esc(pre.title||"")}" placeholder="e.g. Motor repair bill"></div>
     ${pickerHTML("rcP","Photos or screenshots (up to 4)")}
     <div class="field"><label for="rcNote">Note (optional)</label><input id="rcNote" maxlength="200"></div>`,
     actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Save",onClick:async close=>{
       const photos=getRcP().map(d=>({data:d})); if(!photos.length) throw new Error("Add at least one photo or screenshot");
+      if($("rcCat").value==="owner"){
+        const amount=parseFloat($("rcAmt").value); if(!$("rcDate").value) throw new Error("Choose the date received"); if(!(amount>0)) throw new Error("Enter an amount greater than zero");
+        const fl2=$("rcFlat").value; const pj=await apiPost({action:"addPayment",token,flat:fl2,date:$("rcDate").value,amount,mode:$("rcMode").value,ref:$("rcRef").value,note:$("rcNote").value,photo:photos[0].data});
+        close(); try{ await refresh(true); }catch(e){} toast(pj.photoFailed?rs(amount)+" recorded, but the screenshot could not be saved"+(pj.photoReason?" ("+pj.photoReason+")":"")+".":rs(amount)+" recorded for flat "+fl2+".",!!pj.photoFailed); if(after) after(); return;
+      }
       await apiPost({action:"addRecord",category:$("rcCat").value,date:$("rcDate").value,title:$("rcTitle").value,amount:$("rcAmt").value,note:$("rcNote").value,photos,expenseKey:pre.key||""});
       close(); toast("Saved to the records."); if(after) after();
     }}]});
-  if(pre.category) $("rcCat").value=pre.category;
+  if(pre.category) $("rcCat").value=pre.category; else if(pre.key) $("rcCat").value="repair";
   const getRcP=pickerBind("rcP",4);
+  const rcHint=()=>{ const f=byFlat($("rcFlat").value); if(!f) return; const c=calc(f); $("rcHint").innerHTML=`${esc(c.f.owner)} · Billed <b>${rs(c.f.total)}</b> · Received <b>${rs(c.paid)}</b> · Balance <b>${rs(c.due)}</b>`; if(!$("rcAmt").dataset.t) $("rcAmt").value=c.due>0?c.due.toFixed(2):""; };
+  const rcType=()=>{ const o=$("rcCat").value==="owner"; $("rcOwn").hidden=!o; $("rcTitleF").hidden=o; document.querySelector('label[for="rcDate"]').textContent=o?"Date received":"Date"; document.querySelector('label[for="rcNote"]').textContent=o?"Note (optional)":"Note (optional)"; if(o){ $("rcAmt").dataset.t=""; rcHint(); } else { $("rcAmt").value=pre.amount||""; } };
+  $("rcAmt").oninput=()=>{ $("rcAmt").dataset.t="1"; };
+  $("rcFlat").onchange=()=>{ $("rcAmt").dataset.t=""; rcHint(); };
+  $("rcCat").onchange=rcType; rcType();
 }
 
 function renderFund(){
@@ -1311,9 +1329,12 @@ function tankerCardFull(){
     ${pickerHTML("tP","Payment screenshot (optional)")}
     <button class="btn" id="tAdd">+ Add tanker</button>
     ${ms.map((m,mi)=>`<div class="section-head" style="margin-top:18px"><h3>${esc(m.label)}</h3><div class="count">${m.trips} trips · ${rs(m.total)}</div></div>
-      ${mi>1?"":`<div class="rows" style="max-height:none">${m.entries.map(e=>`<div class="row" style="cursor:default"><span class="ow">${esc(e.token)}<em>${fmtDate(e.date)} · ${rs(e.cost)} + bata ${rs(e.bata)}</em></span><span class="am">${rs(e.total)}</span><button class="btn small ghost danger" data-tdel="${m.month}|${e.row}|${e.date}">✕</button></div>`).join("")}</div>`}`).join("")}</div>`;
+      ${(()=>{ const n=tankProofs.filter(r=>String(r.month)===String(m.month)).length; return n?`<div class="stack" style="margin-top:0"><button class="btn small tiny ghost" data-tprm="${esc(m.month)}">📎 Bills &amp; proofs for ${esc(m.label)} (${n})</button></div>`:""; })()}
+      ${mi>1?"":`<div class="rows" style="max-height:none">${m.entries.map(e=>`<div class="row" style="cursor:default;flex-wrap:nowrap;gap:6px"><span class="ow" style="min-width:0;flex:1 1 auto">${esc(e.token)}<em>${fmtDate(e.date)} · ${rs(e.cost)} + bata ${rs(e.bata)}</em>${(()=>{ const n=tankProofs.filter(r=>String(r.date).slice(0,10)===String(e.date).slice(0,10)).length; return n?`<button class="btn small tiny ghost" style="display:inline-block;width:auto;min-width:0;margin:4px 0 0;padding:2px 8px" data-tpr="${esc(String(e.date).slice(0,10))}" title="Bills and proofs for this date">📎 ${n}</button>`:""; })()}</span><span class="am">${rs(e.total)}</span><button class="btn small ghost danger" style="width:auto;flex:0 0 auto;padding:4px 10px" data-tdel="${m.month}|${e.row}|${e.date}">✕</button></div>`).join("")}</div>`}`).join("")}</div>`;
 }
 function bindTanker(){
+  document.querySelectorAll("[data-tpr]").forEach(b=>b.onclick=()=>{ const l=tankProofs.filter(r=>String(r.date).slice(0,10)===b.dataset.tpr); if(l.length) proofGallery(l,"Tanker · "+fmtDate(b.dataset.tpr)); });
+  document.querySelectorAll("[data-tprm]").forEach(b=>b.onclick=()=>{ const l=tankProofs.filter(r=>String(r.month)===b.dataset.tprm); if(l.length) proofGallery(l,"Tanker bills · "+fMonthLabel(b.dataset.tprm)); });
   const add=$("tAdd"); if(!add) return;
   const getTP=pickerBind("tP",2);
   $("tKind").onchange=()=>{ $("tCost").value = $("tKind").value==="Commercial"?1400:1000; };
@@ -1325,7 +1346,7 @@ function bindTanker(){
       tankData = await apiPost({action:"addTanker",date:tdate,kind:$("tKind").value,tokenNo:$("tNo").value,cost:$("tCost").value,bata:$("tBata").value});
       let tn="Tanker added to the sheet.";
       if(ph.length){ try{ await apiPost({action:"addRecord",category:"tanker",date:tdate,title:ttitle,amount:tamt,photos:ph.map(d=>({data:d}))}); tn="Tanker added with its screenshot."; }catch(err){ tn="Tanker added, but the screenshot could not be saved: "+err.message; } }
-      try{ fundData=await apiPost({action:"fundStatement"}); }catch(e){} toast(tn); renderFund();
+      try{ fundData=await apiPost({action:"fundStatement"}); }catch(e){} try{ const rj=await apiPost({action:"records",category:"tanker",month:""}); tankProofs=rj.records||[]; }catch(e){} toast(tn); renderFund();
     }catch(e){ toast(e.message,true); }
     fundBusy=false; add.disabled=false;
   };
