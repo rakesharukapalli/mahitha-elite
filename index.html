@@ -881,7 +881,7 @@ function renderComplaints(){
 }
 async function openHistory(flat){
   const j=await apiPost({action:"duesHistory",flat});
-  const rows=j.months.map(m=>`<div class="rec"><div class="t"><span>${esc(m.label)}</span><span class="${m.balance>0?"r":"g"}">${m.balance<0?rs(-m.balance)+" credit":m.balance>0?rs(m.balance)+" due":"Cleared"}</span></div><div class="m">Billed ${rs(m.total)} · Paid ${rs(m.paid)}${m.date?" · last on "+fmtDate(m.date):""}</div></div>`).join("");
+  const rows=j.months.map(m=>`<div class="rec"><div class="t"><span>${esc(m.label)}</span><span class="${m.balance>0?"r":"g"}">${m.balance<0?rs(-m.balance)+" credit":m.balance>0?rs(m.balance)+" due":"Cleared"}</span></div><div class="m">${m.units>0?`Water: ${m.units} units × ${rs(m.rate)} per unit = ${rs(m.water)}<br>`:""}Fixed maintenance ${rs(m.fixed)}${m.arrears?` · ${m.arrears<0?"Credit":"Old balance"} ${rs(Math.abs(m.arrears))}`:""}<br>Billed ${rs(m.total)} · Paid ${rs(m.paid)}${m.date?" · last on "+fmtDate(m.date):""}</div></div>`).join("");
   openModal({title:"Past months · Flat "+esc(j.flat),sub:"Last 6 months. Total includes any old balance carried forward (Arrears).",
     body:j.months.length?`${rows}<p class="dueline" style="margin-top:10px">Balance left in a month is added to the next month as Arrears, so do not add the balances together.</p>`:'<div class="empty">No earlier months found.</div>',
     actions:[{label:"Close",cls:"ghost",cancel:true}]});
