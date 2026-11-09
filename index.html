@@ -60,6 +60,17 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .search input::placeholder{color:#758ba1}
 
 .card{border:1px solid var(--line);border-radius:24px;background:var(--panel);box-shadow:0 18px 50px rgba(0,0,0,.3)}
+details.fsec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;margin:0;flex-wrap:nowrap}
+details.fsec>summary::-webkit-details-marker{display:none}
+details.fsec>summary h3{flex:1 1 auto;margin:0}
+details.fsec>summary::after{content:"▸";font-weight:900;font-size:16px;flex:0 0 auto}
+details.fsec[open]>summary::after{content:"▾"}
+details.fsec[open]>summary{margin-bottom:12px}
+details.fsub{border-top:2px solid var(--ink);padding-top:8px;margin-top:10px}
+details.fsub>summary{padding:4px 0}
+details.fsub>summary h3{font-size:14px}
+.ibs{display:flex;gap:6px;margin-top:5px;flex-wrap:nowrap}
+.ibs .btn{width:auto!important;min-width:0!important;min-height:0!important;height:28px;padding:0 9px!important;font-size:12px!important;line-height:1;border-radius:8px!important;border-width:2px!important;box-shadow:2px 2px 0 var(--ink)!important;margin:0!important}
 .section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
 .section-head h3{margin:0;font-size:16px}
 .count{font-size:12px;color:var(--muted)}
@@ -1126,7 +1137,23 @@ async function loadFund(){
 }
 function fMonthLabel(k){ const [y,m]=k.split("-").map(Number); return new Date(y,m-1,1).toLocaleDateString("en-IN",{month:"long",year:"numeric"}); }
 let expCur=[];
-function expRows(list,edit){ expCur=list; return list.map((x,i)=>`<div class="row" style="cursor:default"><span class="ow">${esc(x.item)}<em>${x.date?fmtDate(x.date):""}</em></span><span class="am">${rs(x.amount)}</span>${x.proofs?`<button class="btn small tiny ghost" data-proofs="${i}" title="Bills and proofs">📎 ${x.proofs}</button>`:""}${edit?`<button class="btn small tiny ghost" data-xproof="${i}" title="Add bill or screenshot">+📎</button>`:""}${edit&&!/water\s*tanker\s*utili/i.test(x.item)?`<button class="btn small ghost danger" data-xdel="${x.row}|${esc(x.date)}|${esc(x.item)}">✕</button>`:""}</div>`).join(""); }
+function expRows(list,edit){ expCur=list; return list.map((x,i)=>{ const auto=/water\s*tanker\s*utili/i.test(x.item), b=[];
+  if(edit&&!auto) b.push(`<button class="btn small tiny ghost" data-xedit="${i}" title="Edit" aria-label="Edit">✎</button>`);
+  if(x.proofs||edit) b.push(`<button class="btn small tiny ghost" data-xatt="${i}" data-xadd="${edit?1:0}" title="Bills and proofs" aria-label="Bills and proofs">📎${x.proofs?" "+x.proofs:""}</button>`);
+  if(edit&&!auto) b.push(`<button class="btn small tiny ghost danger" data-xdel="${x.row}|${esc(x.date)}|${esc(x.item)}" title="Delete" aria-label="Delete">🗑</button>`);
+  return `<div class="row" style="cursor:default"><span class="ow">${esc(x.item)}<em>${x.date?fmtDate(x.date):""}</em>${b.length?`<span class="ibs">${b.join("")}</span>`:""}</span><span class="am">${rs(x.amount)}</span></div>`; }).join(""); }
+function attachModal({title,n,canAdd,onView,onAdd}){
+  if(!canAdd){ if(n) onView(); return; }
+  openModal({title:title,sub:n?n+" bill(s) or proof(s) saved.":"No bills or proofs saved yet.",body:"",actions:[{label:"Close",cls:"ghost",cancel:true}].concat(n?[{label:"View ("+n+")",cls:"ghost",onClick:async close=>{ close(); onView(); }}]:[]).concat([{label:"+ Add",onClick:async close=>{ close(); onAdd(); }}])});
+}
+function editExpenseModal(x){
+  openModal({title:"Edit expense",sub:"Saved in the Balance sheet. Bills already attached stay with it.",
+    body:`<div class="field"><label for="eeDate">Date</label><input type="date" id="eeDate" value="${esc(String(x.date).slice(0,10))}"></div><div class="field"><label for="eeItem">What for</label><input id="eeItem" maxlength="80" value="${esc(x.item)}"></div><div class="field"><label for="eeAmt">Amount (₹)</label><input type="number" id="eeAmt" step="0.01" inputmode="decimal" value="${x.amount}"></div>`,
+    actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Save",onClick:async close=>{
+      const amount=parseFloat($("eeAmt").value); if(!$("eeDate").value) throw new Error("Choose the date"); if(!$("eeItem").value.trim()) throw new Error("Write what it was for"); if(!(amount>0)) throw new Error("Enter an amount");
+      fundApply(await apiPost({action:"editExpense",row:x.row,date:x.date,item:x.item,newDate:$("eeDate").value,newItem:$("eeItem").value,newAmount:amount})); close(); toast("Expense updated.");
+    }}]});
+}
 /* ---------- proofs: bills and payment screenshots ---------- */
 function pickerHTML(id,label){ return `<div class="field"><label>${label}</label><div class="thumbs" id="${id}T"></div><button type="button" class="btn small ghost" id="${id}B">+ Add photo</button><input type="file" id="${id}F" accept="image/*" multiple hidden></div>`; }
 function pickerBind(id,max){
@@ -1203,19 +1230,18 @@ function renderFundBody(){
   ${st.latest&&canEdit()?`<div class="card adminblock"><div class="section-head"><h3>Enter data · ${esc(st.label)}</h3><div class="count">saved to your Sheet</div></div>
     <div class="stack" style="margin-top:0"><button class="btn" id="xAdd">+ Add expense</button><button class="btn ghost" id="xCash">Cash received: ${rs(st.cash)}</button><button class="btn ghost" id="xProj">Projection for ${esc((st.proj||{}).forMonth||"next month")}</button><button class="btn ghost" id="xNext">Start ${esc(fMonthLabel(fundData.nextMonth||""))}</button></div>
     <p class="dueline" style="margin:10px 0 0">The water tanker expense is added automatically from the tanker entries below. Older months can be corrected in the Sheet.</p></div>`:""}
-  <div class="card adminblock"><div class="section-head"><h3>Expenses · ${esc(st.label)}</h3><div class="count">${st.expenses.length} items</div></div>
-    <div class="rows" style="max-height:none">${expRows(st.expenses,st.latest&&canEdit())}</div></div>
-  <div class="card adminblock"><div class="section-head"><h3>Projection for ${esc(p.forMonth||"next month")}</h3><div class="count">${p.requested?"Requested "+rs(p.requested):"not found"}</div></div>
+  ${fSec("exp","Expenses · "+esc(st.label),st.expenses.length+" items",`<div class="rows" style="max-height:none">${expRows(st.expenses,st.latest&&canEdit())}</div>`)}
+  ${fSec("proj","Projection for "+esc(p.forMonth||"next month"),p.requested?"Requested "+rs(p.requested):"not found",`${st.latest&&canEdit()?`<div class="stack" style="margin-top:0"><button class="btn small tiny ghost" id="xProj2">✎ Edit projection</button></div>`:""}
     ${p.items.length?`<div class="rows" style="max-height:none">${p.items.map(x=>`<div class="row" style="cursor:default"><span class="ow">${esc(x.item)}</span><span class="am">${rs(x.amount)}</span></div>`).join("")}</div>
-    <div class="tablewrap" style="margin-top:10px"><table><tbody><tr><td>Expected expenses</td><td class="num">${rs(p.expected)}</td></tr><tr><td>Less: closing balance / adjustment</td><td class="num">${p.adjust<0?"−":"+"}${rs(Math.abs(p.adjust))}</td></tr><tr><td><b>Fund required</b> (before rounding)</td><td class="num"><b>${rs(p.expected+p.adjust)}</b></td></tr><tr><td><b>Amount requested</b> (your sheet)</td><td class="num"><b>${rs(p.requested)}</b></td></tr></tbody></table></div>`:'<div class="empty">No projection beside this month in the sheet.</div>'}</div>
-  ${v?`<div class="card adminblock"><div class="section-head"><h3>Projected vs actual · ${esc(st.label)}</h3></div>
-    <div class="tablewrap"><table><tbody><tr><td>Projected expenses</td><td class="num">${rs(v.projected)}</td></tr><tr><td>Actual expenses</td><td class="num">${rs(v.actual)}</td></tr><tr><td><b>${v.diff>0?"Overspent by":"Saved"}</b></td><td class="num" style="color:${v.diff>0?"#c81e45":"#0a7a3b"}"><b>${rs(Math.abs(v.diff))}</b></td></tr><tr><td>Funds requested</td><td class="num">${rs(v.requested)}</td></tr><tr><td>Cash received</td><td class="num">${rs(v.received)}</td></tr></tbody></table></div></div>`:""}
-  ${c?`<div class="card adminblock"><div class="section-head"><h3>Collection · ${esc(c.label)}</h3><div class="count">${c.pct}% collected</div></div>
-    <div class="kpis" style="grid-template-columns:repeat(2,1fr)">${kp("Billed",rs(c.billed))}${kp("Collected",rs(c.collected),"#0a7a3b")}${kp("Pending",rs(c.pending),"#c81e45")}${kp("Flats paid",c.paidFlats+" / "+c.flats)}</div></div>`:""}
+    <div class="tablewrap" style="margin-top:10px"><table><tbody><tr><td>Expected expenses</td><td class="num">${rs(p.expected)}</td></tr><tr><td>Less: closing balance / adjustment</td><td class="num">${p.adjust<0?"−":"+"}${rs(Math.abs(p.adjust))}</td></tr><tr><td><b>Fund required</b> (before rounding)</td><td class="num"><b>${rs(p.expected+p.adjust)}</b></td></tr><tr><td><b>Amount requested</b> (your sheet)</td><td class="num"><b>${rs(p.requested)}</b></td></tr></tbody></table></div>`:'<div class="empty">No projection beside this month in the sheet.</div>'}`)}
+  ${v?fSec("pva","Projected vs actual · "+esc(st.label),v.diff>0?"Over "+rs(Math.abs(v.diff)):"Saved "+rs(Math.abs(v.diff)),`
+    <div class="tablewrap"><table><tbody><tr><td>Projected expenses</td><td class="num">${rs(v.projected)}</td></tr><tr><td>Actual expenses</td><td class="num">${rs(v.actual)}</td></tr><tr><td><b>${v.diff>0?"Overspent by":"Saved"}</b></td><td class="num" style="color:${v.diff>0?"#c81e45":"#0a7a3b"}"><b>${rs(Math.abs(v.diff))}</b></td></tr><tr><td>Funds requested</td><td class="num">${rs(v.requested)}</td></tr><tr><td>Cash received</td><td class="num">${rs(v.received)}</td></tr></tbody></table></div>`):""}
+  ${c?fSec("col","Collection · "+esc(c.label),c.pct+"% collected",`<div class="kpis" style="grid-template-columns:repeat(2,1fr)">${kp("Billed",rs(c.billed))}${kp("Collected",rs(c.collected),"#0a7a3b")}${kp("Pending",rs(c.pending),"#c81e45")}${kp("Flats paid",c.paidFlats+" / "+c.flats)}</div>`):""}
   ${tankerCard()}`;
   $("fMonth").onchange=e=>{ fundMonth=e.target.value; renderFund(); };
   $("fPrint").onclick=()=>printFund(st,c); $("fPrintP").onclick=()=>printFund(st,c,true);
   bindTanker(); bindFundEdit(st);
+  el.querySelectorAll("details[data-sec]").forEach(d=>d.addEventListener("toggle",()=>{ fundOpen[d.dataset.sec]=d.open; }));
 }
 
 const PRI_ORDER={P0:0,P1:1,P2:2,P3:3};
@@ -1317,39 +1343,57 @@ async function loadWorks(){
   renderWM();
 }
 function renderWM(){ if(view==="works") renderWorks(); else if(view==="meet") renderMeetings(); }
-function tankerCard(){ let h=tankerCardFull(); if(!canEdit()) h=h.replace(/<div class="two">[\s\S]*?<button class="btn" id="tAdd">[^<]*<\/button>/,"").replace(/<button class="btn small ghost danger" data-tdel[^>]*>✕<\/button>/g,""); return h; }
-function tankerCardFull(){
+function tankerCard(){ return tankerCardFull(canEdit()); }
+let fundOpen={exp:true,tank:false,proj:false,pva:false,col:false};
+function fSec(id,title,count,body){ return `<details class="card adminblock fsec" data-sec="${id}" ${fundOpen[id]?"open":""}><summary class="section-head"><h3>${title}</h3><div class="count">${count}</div></summary>${body}</details>`; }
+function tripKind(e){ return /^commercial/i.test(e.token)?"Commercial":"HMWSSB"; }
+function tripNo(e){ const m=String(e.token).match(/\(([^)]+)\)/); return m?m[1]:""; }
+function tankerCardFull(edit){
   if(!tankData) return "";
   if(tankData.error) return `<div class="card adminblock"><div class="section-head"><h3>Water tankers</h3></div><div class="empty">${esc(tankData.error)}</div></div>`;
-  const ms=tankData.months;
-  return `<div class="card adminblock"><div class="section-head"><h3>Water tankers</h3><div class="count">Saved in your "water Tanker" tab</div></div>
-    <div class="two"><div class="field"><label for="tDate">Date</label><input type="date" id="tDate" value="${todayISO()}"></div><div class="field"><label for="tKind">Type</label><select id="tKind"><option value="HMWSSB">GHMC / HMWSSB</option><option value="Commercial">Private / Commercial</option></select></div></div>
-    <div class="two"><div class="field"><label for="tNo">Token / vehicle no (optional)</label><input id="tNo" maxlength="12" inputmode="text"></div><div class="field"><label for="tCost">Cost ₹</label><input type="number" id="tCost" value="1000" inputmode="decimal"></div></div>
-    <div class="field"><label for="tBata">Driver bata ₹</label><input type="number" id="tBata" value="100" inputmode="decimal"></div>
-    ${pickerHTML("tP","Payment screenshot (optional)")}
-    <button class="btn" id="tAdd">+ Add tanker</button>
-    ${ms.map((m,mi)=>`<div class="section-head" style="margin-top:18px"><h3>${esc(m.label)}</h3><div class="count">${m.trips} trips · ${rs(m.total)}</div></div>
-      ${(()=>{ const n=tankProofs.filter(r=>String(r.month)===String(m.month)).length; return n?`<div class="stack" style="margin-top:0"><button class="btn small tiny ghost" data-tprm="${esc(m.month)}">📎 Bills &amp; proofs for ${esc(m.label)} (${n})</button></div>`:""; })()}
-      ${mi>1?"":`<div class="rows" style="max-height:none">${m.entries.map(e=>`<div class="row" style="cursor:default;flex-wrap:nowrap;gap:6px"><span class="ow" style="min-width:0;flex:1 1 auto">${esc(e.token)}<em>${fmtDate(e.date)} · ${rs(e.cost)} + bata ${rs(e.bata)}</em>${(()=>{ const n=tankProofs.filter(r=>String(r.date).slice(0,10)===String(e.date).slice(0,10)).length; return n?`<button class="btn small tiny ghost" style="display:inline-block;width:auto;min-width:0;margin:4px 0 0;padding:2px 8px" data-tpr="${esc(String(e.date).slice(0,10))}" title="Bills and proofs for this date">📎 ${n}</button>`:""; })()}</span><span class="am">${rs(e.total)}</span><button class="btn small ghost danger" style="width:auto;flex:0 0 auto;padding:4px 10px" data-tdel="${m.month}|${e.row}|${e.date}">✕</button></div>`).join("")}</div>`}`).join("")}</div>`;
+  const ms=tankData.months.slice(0,5);
+  const dn=e=>tankProofs.filter(r=>String(r.date).slice(0,10)===String(e.date).slice(0,10)).length;
+  const trip=(e,mi,ei)=>{ const n=dn(e), b=[];
+    if(edit) b.push(`<button class="btn small tiny ghost" data-tedit="${mi}|${ei}" title="Edit" aria-label="Edit">✎</button>`);
+    if(n||edit) b.push(`<button class="btn small tiny ghost" data-tatt="${mi}|${ei}" title="Bills and proofs" aria-label="Bills and proofs">📎${n?" "+n:""}</button>`);
+    if(edit) b.push(`<button class="btn small tiny ghost danger" data-tdel="${ms[mi].month}|${e.row}|${e.date}" title="Delete" aria-label="Delete">🗑</button>`);
+    return `<div class="row" style="cursor:default"><span class="ow">${esc(e.token)}<em>${fmtDate(e.date)} · ${rs(e.cost)} + bata ${rs(e.bata)}</em>${b.length?`<span class="ibs">${b.join("")}</span>`:""}</span><span class="am">${rs(e.total)}</span></div>`; };
+  const body=(edit?`<div class="stack" style="margin-top:0"><button class="btn small" id="tAdd">+ Add tanker</button></div>`:"")+ms.map((m,mi)=>{
+    const n=tankProofs.filter(r=>String(r.month)===String(m.month)).length, k="tm-"+m.month, open=k in fundOpen?fundOpen[k]:mi===0;
+    return `<details class="fsec fsub" data-sec="${k}" ${open?"open":""}><summary class="section-head"><h3>${esc(m.label)}</h3><div class="count">${m.trips} trips · ${rs(m.total)}</div></summary>
+      ${n?`<div class="stack" style="margin-top:0"><button class="btn small tiny ghost" data-tprm="${esc(m.month)}">📎 Bills &amp; proofs for ${esc(m.label)} (${n})</button></div>`:""}
+      <div class="rows" style="max-height:none">${m.entries.map((e,ei)=>trip(e,mi,ei)).join("")}</div></details>`; }).join("");
+  return fSec("tank","Water tankers",ms.length?esc(ms[0].label)+" · "+rs(ms[0].total):"",body);
 }
-function bindTanker(){
-  document.querySelectorAll("[data-tpr]").forEach(b=>b.onclick=()=>{ const l=tankProofs.filter(r=>String(r.date).slice(0,10)===b.dataset.tpr); if(l.length) proofGallery(l,"Tanker · "+fmtDate(b.dataset.tpr)); });
-  document.querySelectorAll("[data-tprm]").forEach(b=>b.onclick=()=>{ const l=tankProofs.filter(r=>String(r.month)===b.dataset.tprm); if(l.length) proofGallery(l,"Tanker bills · "+fMonthLabel(b.dataset.tprm)); });
-  const add=$("tAdd"); if(!add) return;
-  const getTP=pickerBind("tP",2);
-  $("tKind").onchange=()=>{ $("tCost").value = $("tKind").value==="Commercial"?1400:1000; };
-  add.onclick=async()=>{
-    if(fundBusy) return; fundBusy=true; add.disabled=true;
-    try{
+function tankerModal(mi,ei){
+  const m=mi==null?null:tankData.months[mi], e=m?m.entries[ei]:null;
+  const kind=e?tripKind(e):"HMWSSB";
+  let getTP=()=>[];
+  openModal({title:e?"Edit tanker":"Add tanker",sub:e?"Saved in your \"water Tanker\" tab. The date must stay in the same month.":"Saved in your \"water Tanker\" tab.",
+    body:`<div class="two"><div class="field"><label for="tDate">Date</label><input type="date" id="tDate" value="${e?esc(String(e.date).slice(0,10)):todayISO()}"></div><div class="field"><label for="tKind">Type</label><select id="tKind"><option value="HMWSSB" ${kind==="HMWSSB"?"selected":""}>GHMC / HMWSSB</option><option value="Commercial" ${kind==="Commercial"?"selected":""}>Private / Commercial</option></select></div></div>
+    <div class="two"><div class="field"><label for="tNo">Token / vehicle no (optional)</label><input id="tNo" maxlength="12" inputmode="text" value="${e?esc(tripNo(e)):""}"></div><div class="field"><label for="tCost">Cost ₹</label><input type="number" id="tCost" value="${e?e.cost:1000}" inputmode="decimal"></div></div>
+    <div class="field"><label for="tBata">Driver bata ₹</label><input type="number" id="tBata" value="${e?e.bata:100}" inputmode="decimal"></div>
+    ${e?"":pickerHTML("tP","Payment screenshot (optional)")}`,
+    actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:e?"Save":"+ Add tanker",onClick:async close=>{
       if(!$("tDate").value) throw new Error("Choose the date");
+      const body={kind:$("tKind").value,tokenNo:$("tNo").value,cost:$("tCost").value,bata:$("tBata").value};
+      if(e){ tankData=await apiPost(Object.assign({action:"editTanker",month:m.month,row:e.row,date:e.date,newDate:$("tDate").value},body)); try{ fundData=await apiPost({action:"fundStatement"}); }catch(x){} close(); renderFund(); toast("Tanker updated."); return; }
       const ph=getTP(), tdate=$("tDate").value, ttitle="Tanker "+($("tNo").value||$("tKind").value), tamt=(parseFloat($("tCost").value)||0)+(parseFloat($("tBata").value)||0);
-      tankData = await apiPost({action:"addTanker",date:tdate,kind:$("tKind").value,tokenNo:$("tNo").value,cost:$("tCost").value,bata:$("tBata").value});
+      tankData=await apiPost(Object.assign({action:"addTanker",date:tdate},body));
       let tn="Tanker added to the sheet.";
       if(ph.length){ try{ await apiPost({action:"addRecord",category:"tanker",date:tdate,title:ttitle,amount:tamt,photos:ph.map(d=>({data:d}))}); tn="Tanker added with its screenshot."; }catch(err){ tn="Tanker added, but the screenshot could not be saved: "+err.message; } }
-      try{ fundData=await apiPost({action:"fundStatement"}); }catch(e){} try{ const rj=await apiPost({action:"records",category:"tanker",month:""}); tankProofs=rj.records||[]; }catch(e){} toast(tn); renderFund();
-    }catch(e){ toast(e.message,true); }
-    fundBusy=false; add.disabled=false;
-  };
+      try{ fundData=await apiPost({action:"fundStatement"}); }catch(x){} try{ const rj=await apiPost({action:"records",category:"tanker",month:""}); tankProofs=rj.records||[]; }catch(x){}
+      close(); toast(tn); renderFund();
+    }}]});
+  if(!e){ getTP=pickerBind("tP",2); $("tKind").onchange=()=>{ $("tCost").value=$("tKind").value==="Commercial"?1400:1000; }; }
+}
+function bindTanker(){
+  document.querySelectorAll("[data-tprm]").forEach(b=>b.onclick=()=>{ const l=tankProofs.filter(r=>String(r.month)===b.dataset.tprm); if(l.length) proofGallery(l,"Tanker bills · "+fMonthLabel(b.dataset.tprm)); });
+  const pick=a=>{ const [mi,ei]=a.split("|").map(Number); const e=tankData.months[mi].entries[ei]; return [mi,ei,e]; };
+  document.querySelectorAll("[data-tatt]").forEach(b=>b.onclick=()=>{ const [mi,ei,e]=pick(b.dataset.tatt); const d=String(e.date).slice(0,10), l=tankProofs.filter(r=>String(r.date).slice(0,10)===d);
+    attachModal({title:"Tanker · "+fmtDate(e.date),n:l.length,canAdd:canEdit(),onView:()=>proofGallery(l,"Tanker · "+fmtDate(e.date)),onAdd:()=>proofModal({category:"tanker",date:d,title:"Tanker "+(tripNo(e)||tripKind(e)),amount:e.total},()=>loadFund())}); });
+  document.querySelectorAll("[data-tedit]").forEach(b=>b.onclick=()=>{ const [mi,ei]=pick(b.dataset.tedit); tankerModal(mi,ei); });
+  const add=$("tAdd"); if(add) add.onclick=()=>tankerModal(null);
   document.querySelectorAll("[data-tdel]").forEach(b=>b.onclick=()=>{
     const [month,row,date]=b.dataset.tdel.split("|");
     confirmModal("Delete this tanker entry?","It is removed from your Google Sheet and the month total is recalculated.","Delete",async()=>{
@@ -1384,6 +1428,7 @@ function bindFundEdit(st){
   $("xNext").onclick=()=>confirmModalOk("Start "+fMonthLabel(fundData.nextMonth||"")+"?","A new block is added at the bottom of the Balance sheet: cash received, opening balance (last closing + cash) and the total row.",
     `<div class="two"><div class="field"><label for="nDate">Cash received on</label><input type="date" id="nDate" value="${todayISO()}"></div><div class="field"><label for="nAmt">Cash received (₹)</label><input type="number" id="nAmt" inputmode="decimal" placeholder="0 if not yet"></div></div>`,
     async close=>{ fundApply(await apiPost({action:"openMonth",date:$("nDate").value,amount:$("nAmt").value||0})); fundMonth=fundData.statements[0].month; renderFund(); close(); toast("New month started."); });
+  if($("xProj2")) $("xProj2").onclick=()=>$("xProj").click();
   $("xProj").onclick=()=>{
     const p=st.proj||{items:[]}, lines=p.items.map(x=>x.item+" "+x.amount).join("\n");
     const sug=()=>{ const items=parseProjText($("pjText").value), sum=items.reduce((a,x)=>a+x.amount,0), need=sum-st.closing; $("pjHint").innerHTML=`Expenses ${rs(sum)} − closing balance ${rs(st.closing)} = <b>${rs(need)}</b>`; return Math.max(1000,Math.ceil(need/1000)*1000); };
@@ -1665,8 +1710,8 @@ document.addEventListener("click",async e=>{
     if(cl.dataset.claim==="approve") return approveModal(cl.dataset.id);
     return rejectModal(cl.dataset.id); }
   const sh = e.target.closest("[data-shot]"); if(sh){ e.preventDefault(); return shotModal(sh.dataset.shot); }
-  const pb = e.target.closest("[data-proofs]"); if(pb){ const x=expCur[Number(pb.dataset.proofs)]; if(x) return openProofsByKey(x.key,x.item); }
-  const xp = e.target.closest("[data-xproof]"); if(xp){ const x=expCur[Number(xp.dataset.xproof)]; if(x) return proofModal({key:x.key,title:x.item,amount:x.amount,date:x.date,category:/water\s*tanker\s*utili/i.test(x.item)?"tanker":"repair"},()=>loadFund()); }
+  const xa = e.target.closest("[data-xatt]"); if(xa){ const x=expCur[Number(xa.dataset.xatt)]; if(x) return attachModal({title:x.item,n:x.proofs||0,canAdd:xa.dataset.xadd==="1",onView:()=>openProofsByKey(x.key,x.item),onAdd:()=>proofModal({key:x.key,title:x.item,amount:x.amount,date:x.date,category:/water\s*tanker\s*utili/i.test(x.item)?"tanker":"repair"},()=>loadFund())}); }
+  const xe = e.target.closest("[data-xedit]"); if(xe){ const x=expCur[Number(xe.dataset.xedit)]; if(x) return editExpenseModal(x); }
   const ep = e.target.closest("[data-editpay]"); if(ep) return editPaymentModal(ep.dataset.editpay);
 });
 $("newNotice").hidden = true;
