@@ -449,6 +449,7 @@ window.UI_TEXT_TE = {
   "Billed": "బిల్లు",
   "No earlier months found.": "ఇంతకుముందు నెలల డేటా లేదు.",
   "Balance left in a month is added to the next month as Arrears, so do not add the balances together.": "ఒక నెలలో మిగిలిన బాకీ తర్వాతి నెలలో Arrears గా కలుస్తుంది, కాబట్టి బాకీలను కలిపి లెక్క వేయకండి.",
+  "Payment screenshot (optional, if the owner sent it to you)": "పేమెంట్ స్క్రీన్‌షాట్ (ఐచ్ఛికం, ఓనర్ మీకు పంపితే)",
   "+ Add screenshot": "+ స్క్రీన్‌షాట్ జోడించండి",
   "Change screenshot": "స్క్రీన్‌షాట్ మార్చండి",
   "Screenshot added": "స్క్రీన్‌షాట్ జోడించబడింది",

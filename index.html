@@ -1025,8 +1025,8 @@ document.addEventListener("click",e=>{ const b=e.target.closest("[data-mflat]");
 
 /* ---------- records & proofs (admin) ---------- */
 let recD=null, recCat="all", recMonth="", recErr="";
-function recMonths(){ const out=[], d=new Date(); for(let i=0;i<8;i++){ const x=new Date(d.getFullYear(),d.getMonth()-i,1); out.push(x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")); } return out; }
-async function loadRecords(){ if(!recMonth) recMonth=recMonths()[0]; recErr=""; recD=null; renderRecords(); try{ recD=await apiPost({action:"records",month:recMonth,folders:true}); }catch(e){ recErr=e.message; } renderRecords(); }
+function recMonths(){ const out=[], d=new Date(); const am=data&&data.config&&data.config.month; if(am) out.push(am); for(let i=0;i<8;i++){ const x=new Date(d.getFullYear(),d.getMonth()-i,1); const k=x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0"); if(!out.includes(k)) out.push(k); } return out.sort().reverse(); }
+async function loadRecords(){ if(!recMonth) recMonth=(data&&data.config&&data.config.month)||recMonths()[0]; recErr=""; recD=null; renderRecords(); try{ recD=await apiPost({action:"records",month:recMonth,folders:true}); }catch(e){ recErr=e.message; } renderRecords(); }
 function renderRecords(){
   const el=$("v-records"); if(!el) return;
   if(!isAdmin()){ el.innerHTML=""; return; }
@@ -1391,6 +1391,7 @@ $("search").addEventListener("input",e=>{ const q=e.target.value.replace(/\D/g,"
 $("search").addEventListener("keydown",e=>{ if(e.key==="Enter") findFlat(); });
 
 /* ---------- forms & actions ---------- */
+let getPP=()=>[];
 function paymentModal(flat){
   const fl = flats(); if(!fl.length) return;
   const start = flat || selected || fl[0].flat;
@@ -1399,14 +1400,16 @@ function paymentModal(flat){
     body:`<div class="field"><label for="pFlat">Flat</label><select id="pFlat">${fl.map(f=>`<option value="${f.flat}">${f.flat} — ${esc(f.owner)}</option>`).join("")}</select></div><div class="hint" id="pHint"></div>
     <div class="two"><div class="field"><label for="pDate">Date received</label><input type="date" id="pDate" value="${todayISO()}"></div><div class="field"><label for="pAmt">Amount (₹)</label><input type="number" id="pAmt" step="0.01" min="0" inputmode="decimal"></div></div>
     <div class="two"><div class="field"><label for="pMode">Mode</label><select id="pMode"><option value="">Not specified</option><option>UPI</option><option>Cash</option><option>Bank transfer</option><option>Cheque</option></select></div><div class="field"><label for="pRef">Reference / UTR</label><input id="pRef" maxlength="40"></div></div>
-    <div class="field"><label for="pNote">Note (optional)</label><input id="pNote" maxlength="80"></div>`,
+    <div class="field"><label for="pNote">Note (optional)</label><input id="pNote" maxlength="80"></div>
+    ${pickerHTML("pP","Payment screenshot (optional, if the owner sent it to you)")}`,
     actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Save payment",onClick:async close=>{
       const amount = parseFloat($("pAmt").value); if(!($("pDate").value)) throw new Error("Choose the date received"); if(!(amount>0)) throw new Error("Enter an amount greater than zero");
       const fl2 = $("pFlat").value;
-      await apiPost({action:"addPayment",token,flat:fl2,date:$("pDate").value,amount,mode:$("pMode").value,ref:$("pRef").value,note:$("pNote").value});
-      close(); selected=fl2; await refresh(true); toast(rs(amount)+" recorded for flat "+fl2+".");
+      const pb={action:"addPayment",token,flat:fl2,date:$("pDate").value,amount,mode:$("pMode").value,ref:$("pRef").value,note:$("pNote").value}; const pshots=getPP(); if(pshots.length) pb.photo=pshots[0];
+      const pj=await apiPost(pb);
+      close(); selected=fl2; await refresh(true); toast(pj.photoFailed?rs(amount)+" recorded, but the screenshot could not be saved"+(pj.photoReason?" ("+pj.photoReason+")":"")+".":rs(amount)+" recorded for flat "+fl2+".",!!pj.photoFailed);
     }}]});
-  $("pFlat").value = start; $("pFlat").onchange = hint; hint();
+  $("pFlat").value = start; $("pFlat").onchange = hint; hint(); getPP=pickerBind("pP",1);
 }
 function editPaymentModal(flat){
   const p = adminData.payments.find(x=>x.flat===flat) || {amount:0,date:todayISO()}, f = byFlat(flat);
