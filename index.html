@@ -74,6 +74,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .flat:hover{background:linear-gradient(135deg,rgba(255,79,129,.22),rgba(0,198,255,.16));border-color:rgba(255,255,255,.3)}
 .flat .adm{position:absolute;top:2px;left:5px;font-size:11px;line-height:1;font-style:normal;color:#4a1d5c}.flat .adm.sup{color:#f5a300;text-shadow:0 0 1px #1b1230,0 0 1px #1b1230,0 0 1px #1b1230}.admkey{font-size:12px;color:#4a1d5c}.admkey.sup{color:#f5a300;text-shadow:0 0 1px #1b1230,0 0 1px #1b1230}
 .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ptile{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;min-width:0;border:2px solid var(--ink);border-radius:12px;background:#fff;padding:8px 9px}.pfn{font-size:18px;font-weight:900;color:var(--ink)}.pnm{display:flex;flex-direction:column;min-width:0;line-height:1.3}.pr{display:flex;align-items:center;gap:4px;min-width:0}.pn{flex:1;min-width:0;font-size:12px;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pnm em{font-style:normal;font-size:14px;font-weight:900;color:#c81e45;white-space:nowrap}.ptile .cic{flex:none;width:24px;height:24px;border-width:1.5px}
+#rcTabs{gap:2px}#rcTabs button{flex:1 1 auto;padding:10px 7px;font-size:12px;min-width:0;white-space:nowrap}
 .flat.active{background:linear-gradient(135deg,var(--pink),var(--cyan));border-color:transparent}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;color:var(--soft);font-size:12px}
 .legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:8px;height:8px;border-radius:50%}
@@ -1051,9 +1052,18 @@ document.addEventListener("click",e=>{ const b=e.target.closest("[data-mflat]");
 /* ---------- records & proofs (admin) ---------- */
 let recD=null, recCat="all", recMonth="", recErr="";
 function recMonths(){ const out=[], d=new Date(); const am=data&&data.config&&data.config.month; if(am) out.push(am); for(let i=0;i<8;i++){ const x=new Date(d.getFullYear(),d.getMonth()-i,1); const k=x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0"); if(!out.includes(k)) out.push(k); } return out.sort().reverse(); }
-async function loadRecords(){ if(!recMonth) recMonth=(data&&data.config&&data.config.month)||recMonths()[0]; recErr=""; recD=null; renderRecords(); try{ recD=await apiPost({action:"records",month:recMonth==="all"?"":recMonth,folders:true}); }catch(e){ recErr=e.message; } renderRecords(); }
+let recSyncAt=0, recSyncNote="";
+async function syncDrive(manual){
+  if(!canEdit()) return;
+  if(!manual && Date.now()-recSyncAt<60000) return;
+  try{ const j=await apiPost({action:"syncRecords"}); recSyncAt=Date.now(); recSyncNote=j.error?("Drive folder problem: "+j.error):"";
+    if(manual) toast(j.added?(j.added+" new file(s) found in your Drive folders and added."):"Already up to date ("+j.scanned+" files checked).");
+    else if(j.added) toast(j.added+" file(s) from your Drive folders added to Records."); }
+  catch(e){ recSyncNote="Could not read the Drive folders: "+e.message; if(manual) toast(e.message,true); }
+}
+async function loadRecords(manual){ if(!recMonth) recMonth=(data&&data.config&&data.config.month)||recMonths()[0]; recErr=""; recD=null; renderRecords(); await syncDrive(manual===true); try{ recD=await apiPost({action:"records",month:recMonth==="all"?"":recMonth,folders:true}); }catch(e){ recErr=e.message; } renderRecords(); }
 function editRecModal(r){
-  const own=r.category==="owner";
+  const own=r.kind==="claim";
   openModal({title:own?"Edit note · Flat "+esc(r.flat):"Edit record",sub:own?"You can add a committee note to this screenshot. The payment amount and dues are not changed here.":"",
     body:own?`<div class="field"><label for="erNote">Note</label><textarea id="erNote" maxlength="200" style="min-height:90px">${esc(r.note||"")}</textarea></div>`
       :`<div class="field"><label for="erTitle">Title</label><input id="erTitle" maxlength="80" value="${esc(r.title)}"></div><div class="two"><div class="field"><label for="erDate">Date</label><input type="date" id="erDate" value="${esc(String(r.date).slice(0,10))}"></div><div class="field"><label for="erAmt">Amount (₹)</label><input type="number" id="erAmt" step="0.01" inputmode="decimal" value="${r.amount||""}"></div></div><div class="field"><label for="erNote">Note (optional)</label><input id="erNote" maxlength="200" value="${esc(r.note||"")}"></div>`,
@@ -1068,28 +1078,29 @@ function renderRecords(){
   if(recErr){ el.innerHTML=`<div class="card adminblock"><div class="section-head"><h3>Could not load</h3></div><p class="dueline" style="color:#c81e45">${esc(recErr)}</p><button class="btn" data-go="records">Try again</button></div>`; return; }
   if(!recD){ el.innerHTML='<div class="empty">Loading…</div>'; return; }
   const list=recD.records.filter(r=>recCat==="all"||r.category===recCat), f=recD.folders||{};
-  const tabs=[["all","All"],["owner","Maintenance"],["tanker","Tanker"],["repair","Development"]];
+  const tabs=[["all","All"],["owner","Maintenance"],["tanker","Tanker"],["repair","Activities"]];
   const links=(recCat==="all"?["owner","tanker","repair"]:[recCat]).filter(k=>f[k]).map(k=>`<a class="btn small tiny ghost" href="${esc(f[k])}" target="_blank" rel="noopener">📁 ${esc(CAT_LABEL[k])} ↗</a>`).join("");
   const card=r=>{
-    const own=r.category==="owner";
+    const own=r.kind==="claim";
     const head=own?`Flat ${esc(r.flat)}${r.owner?" · "+esc(r.owner):""}`:esc(r.title);
-    const meta=own?`Paid ${r.amount?rs(r.amount):""} on ${fmtDate(r.date)}${r.ref?" · Ref "+esc(r.ref):""}${r.pending?" · waiting for approval":""}${r.by?" · recorded by "+esc(r.by):""}${r.note?"<br>"+esc(r.note):""}`:`${esc(CAT_LABEL[r.category]||r.category)} · ${fmtDate(r.date)}${r.note?" · "+esc(r.note):""}${r.by?" · by "+esc(r.by):""}`;
+    const meta=own?`Paid ${r.amount?rs(r.amount):""} on ${fmtDate(r.date)}${r.ref?" · Ref "+esc(r.ref):""}${r.pending?" · waiting for approval":""}${r.by?" · recorded by "+esc(r.by):""}${r.note?"<br>"+esc(r.note):""}`:`${esc(CAT_LABEL[r.category]||r.category)} · ${fmtDate(r.date)}${r.note?" · "+esc(r.note):""}${r.by&&r.by!=="Drive folder"?" · by "+esc(r.by):""}`;
     return `<div class="rec"><div class="t"><span>${head}</span><span>${!own&&r.amount?rs(r.amount):""}</span></div><div class="m">${meta}</div>
-    <div class="stack" style="margin-top:0"><button class="btn small tiny ghost" data-rview="${esc(r.id)}">📎 View</button>${canEdit()?`<button class="btn small tiny ghost" data-redit="${esc(r.id)}">✎ Edit</button><button class="btn small tiny ghost danger" data-rdel="${esc(r.id)}">🗑 Delete</button>`:""}</div></div>`;
+    <div class="stack acts" style="margin-top:0"><button class="btn small tiny ghost" data-rview="${esc(r.id)}">📎 View</button>${canEdit()?`<button class="btn small tiny ghost" data-redit="${esc(r.id)}">✎ Edit</button><button class="btn small tiny ghost danger" data-rdel="${esc(r.id)}">🗑 Delete</button>`:""}</div></div>`;
   };
   el.innerHTML=`<div class="section-head"><h3>Records &amp; proofs</h3></div>
   <p class="dueline" style="margin:-6px 0 12px">Owner payment screenshots and bills are kept here by month, and also saved in Google Drive. They show against the matching expense in the Fund statement.</p>
-  <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap"><div class="field" style="max-width:220px;margin:0"><label for="rcMonth">Month</label><select id="rcMonth"><option value="all" ${recMonth==="all"?"selected":""}>All months</option>${recMonths().map(m=>`<option value="${m}" ${m===recMonth?"selected":""}>${monthLabelOf(m)}</option>`).join("")}</select></div>${canEdit()?`<button class="btn" id="rcAdd">+ Add bill / screenshot</button>`:""}</div>
+  <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap"><div class="field" style="max-width:220px;margin:0"><label for="rcMonth">Month</label><select id="rcMonth"><option value="all" ${recMonth==="all"?"selected":""}>All months</option>${recMonths().map(m=>`<option value="${m}" ${m===recMonth?"selected":""}>${monthLabelOf(m)}</option>`).join("")}</select></div>${canEdit()?`<button class="btn" id="rcAdd">+ Add bill / screenshot</button><button class="btn ghost" id="rcSync">↻ Sync from Drive</button>`:""}</div>
   <div class="seg" id="rcTabs" style="margin:12px 6px 8px 0">${tabs.map(([k,l])=>`<button data-rc="${k}" class="${recCat===k?"on":""}">${l}</button>`).join("")}</div>
-  ${links?`<div class="stack" style="margin:0 6px 12px 0">${links}</div>`:""}
   ${list.map(card).join("")||'<div class="empty">Nothing saved for this month yet. Pick "All months" above to see every month.</div>'}
-  ${recD.folderErr?`<p class="notebox">The Drive folders could not be created: ${esc(recD.folderErr)}. In Apps Script run <b>authorize</b> once and click Allow, then Deploy &gt; New version. Open Connection check to see the exact step that fails.</p>`:""}`;
+  ${recSyncNote?`<p class="notebox">${esc(recSyncNote)}</p>`:""}${recD.folderErr?`<p class="notebox">The Drive folders could not be created: ${esc(recD.folderErr)}. In Apps Script run <b>authorize</b> once and click Allow, then Deploy &gt; New version. Open Connection check to see the exact step that fails.</p>`:""}
+  <div class="card adminblock" style="margin-top:14px"><div class="section-head"><h3>Google Drive folders</h3></div><p class="dueline" style="margin:-4px 0 10px">Open a folder in Drive to see or share the original files.</p><div class="stack" style="margin-top:0">${["owner","tanker","repair"].map(k=>f[k]?`<a class="btn small tiny ghost" href="${esc(f[k])}" target="_blank" rel="noopener">📁 ${esc(CAT_LABEL[k])} ↗</a>`:"").join("")||'<span class="dueline">Folders appear after the first upload.</span>'}</div></div>`;
   $("rcMonth").onchange=e=>{ recMonth=e.target.value; loadRecords(); };
   $("rcTabs").onclick=e=>{ const b=e.target.closest("[data-rc]"); if(b){ recCat=b.dataset.rc; renderRecords(); } };
+  if($("rcSync")) $("rcSync").onclick=()=>loadRecords(true);
   if($("rcAdd")) $("rcAdd").onclick=()=>proofModal({date:(recMonth==="all"||recMonth===todayISO().slice(0,7))?todayISO():recMonth+"-01"},()=>loadRecords());
   el.querySelectorAll("[data-rview]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.rview); if(r) proofGallery([r],r.title); });
   el.querySelectorAll("[data-rdel]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.rdel); if(!r) return;
-    if(r.category==="owner") return confirmModal("Delete this screenshot?","Only the screenshot is removed (also from your Google Drive folder). The payment and the flat's dues stay as they are.","Delete screenshot",async()=>{ await apiPost({action:"deleteProof",id:r.id}); toast("Screenshot deleted."); loadRecords(); });
+    if(r.kind==="claim") return confirmModal("Delete this screenshot?","Only the screenshot is removed (also from your Google Drive folder). The payment and the flat's dues stay as they are.","Delete screenshot",async()=>{ await apiPost({action:"deleteProof",id:r.id}); toast("Screenshot deleted."); loadRecords(); });
     confirmModal("Delete this record?","The photos are removed from your Google Drive folder too.","Delete",async()=>{ await apiPost({action:"deleteRecord",id:r.id}); toast("Deleted."); loadRecords(); }); });
   el.querySelectorAll("[data-redit]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.redit); if(r) editRecModal(r); });
 }
