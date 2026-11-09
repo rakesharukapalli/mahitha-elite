@@ -72,6 +72,8 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .flat::after{content:"";position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%}
 .flat.s-paid::after{background:var(--green)}.flat.s-partial::after{background:var(--gold)}.flat.s-pending::after{background:var(--red)}
 .flat:hover{background:linear-gradient(135deg,rgba(255,79,129,.22),rgba(0,198,255,.16));border-color:rgba(255,255,255,.3)}
+.flat .adm{position:absolute;top:2px;left:5px;font-size:11px;line-height:1;font-style:normal;color:#4a1d5c}.flat .adm.sup{color:#f5a300;text-shadow:0 0 1px #1b1230,0 0 1px #1b1230,0 0 1px #1b1230}.admkey{font-size:12px;color:#4a1d5c}.admkey.sup{color:#f5a300;text-shadow:0 0 1px #1b1230,0 0 1px #1b1230}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ptile{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;min-width:0;border:2px solid var(--ink);border-radius:12px;background:#fff;padding:8px 9px}.pfn{font-size:18px;font-weight:900;color:var(--ink)}.pnm{display:flex;flex-direction:column;min-width:0;line-height:1.3}.pr{display:flex;align-items:center;gap:4px;min-width:0}.pn{flex:1;min-width:0;font-size:12px;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pnm em{font-style:normal;font-size:14px;font-weight:900;color:#c81e45;white-space:nowrap}.ptile .cic{flex:none;width:24px;height:24px;border-width:1.5px}
 .flat.active{background:linear-gradient(135deg,var(--pink),var(--cyan));border-color:transparent}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;color:var(--soft);font-size:12px}
 .legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:8px;height:8px;border-radius:50%}
@@ -243,7 +245,7 @@ h1{font-weight:900;letter-spacing:-.8px}.sub{color:var(--soft)}
 .block-title,.subhead,.field label,.lhead h4,th{color:var(--ink)}
 .flat{background:#fff;color:var(--ink);border:2px solid var(--ink);border-radius:10px;box-shadow:var(--s3);font-weight:900}
 .flat::after{width:8px;height:8px;border:1.5px solid var(--ink)}
-.flat.s-paid{background:var(--green)}.flat.s-partial{background:var(--gold)}.flat.s-pending{background:#fff}
+.flat.s-paid{background:var(--green)}.flat.s-partial{background:var(--gold)}.flat.s-pending{background:#fff}.flat.s-none{background:#fff}.mgrid .flat{min-height:50px}
 .flat:hover{background:#ffd6e4;border-color:var(--ink)}.flat:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}.flat.active{background:var(--pink);box-shadow:var(--s4);transform:translate(-1px,-1px)}
 .legend{color:var(--ink);font-weight:700}.legend i{border:1.5px solid var(--ink)}
 .result{background:#fff7e8;border:2.5px solid var(--ink)}
@@ -363,7 +365,7 @@ h1{font-weight:900;letter-spacing:-.8px}.sub{color:var(--soft)}
       <section class="card flats">
         <div class="section-head"><h3>Choose Flat</h3><div class="count" id="count"></div></div>
         <div id="flatArea"></div>
-        <div class="legend"><span><i style="background:var(--green)"></i>Paid</span><span><i style="background:var(--gold)"></i>Part paid</span><span><i style="background:var(--red)"></i>Pending</span></div>
+        <div class="legend"><span><i style="background:var(--green)"></i>Paid</span><span><i style="background:var(--gold)"></i>Part paid</span><span><i style="background:var(--red)"></i>Pending</span><span><b class="admkey sup">★</b>Super admin</span><span><b class="admkey">◆</b>Admin</span></div>
       </section>
       <aside class="card result" id="resultCard">
         <div class="result-top"><small>Payment Summary</small><span class="badge" id="monthBadge"></span></div>
@@ -772,6 +774,12 @@ function renderHeader(){
   $("adminBtn").textContent = session ? "Sign out" : "Sign in";
   $("newNotice").hidden = !canEdit();
 }
+function adminMark(n){
+  const sup=String((data.config&&data.config.superFlat)||""), ad=(data.admins||[]);
+  if(n===sup) return '<i class="adm sup" title="Super admin" aria-label="Super admin">★</i>';
+  if(ad.includes(n)) return '<i class="adm" title="Committee admin" aria-label="Committee admin">◆</i>';
+  return "";
+}
 function renderFlats(filter){
   filter = filter||"";
   const area = $("flatArea"); area.innerHTML=""; let shown=0;
@@ -780,11 +788,12 @@ function renderFlats(filter){
     const m = groups[k].sort().filter(n=>n.includes(filter)); if(!m.length) return;
     const block = document.createElement("div"); block.className="block";
     block.innerHTML = `<div class="block-title">${floorName(k)}</div><div class="grid"></div>`;
-    m.forEach(n=>{ const b=document.createElement("button"); b.className="flat s-"+calc(byFlat(n)).status+(n===selected?" active":""); b.textContent=n; b.dataset.flat=n; block.querySelector(".grid").appendChild(b); shown++; });
+    m.forEach(n=>{ const b=document.createElement("button"); b.className="flat s-"+calc(byFlat(n)).status+(n===selected?" active":""); b.dataset.flat=n; b.innerHTML=n+adminMark(n); block.querySelector(".grid").appendChild(b); shown++; });
     area.appendChild(block);
   });
   $("count").textContent = shown+" flats";
 }
+function waSvg(sz){ return `<svg viewBox="0 0 24 24" width="${sz}" height="${sz}" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.200zm4.500-6.100c-.2-.1-1.500-.7-1.700-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.200-.3.200-.5.100a6.700 6.700 0 0 1-3.300-2.900c-.2-.4.200-.4.700-1.300.1-.2 0-.3 0-.5l-.8-1.800c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.100-.7.300-.7.700-1 1.500-.9 2.500.1 1 .7 2 1.300 2.700 1.400 1.800 3.100 3 5.300 3.800.8.300 1.500.2 2-.1.600-.4 1-1 1.100-1.600.1-.4.1-.7 0-.8z"/></svg>`; }
 function contactIcons(flat){
   if(!isAdmin()) return "";
   const ph=cleanPhone(adminData&&adminData.phones&&adminData.phones[flat]); if(!ph) return "";
@@ -920,7 +929,18 @@ function confirmModal(title,sub,label,fn){
   openModal({title,sub,body:"",actions:[{label:"Cancel",cls:"ghost",cancel:true},{label,cls:"danger",onClick:async close=>{ await fn(); close(); }}]});
 }
 async function setViewer(flat,on){
-  try{ await apiPost({action:"setViewer",flat,on}); await loadAdmin(); renderAll(); toast(on?"Flat "+flat+" now has view-only admin access.":"Access removed for flat "+flat+"."); }catch(err){ toast(err.message,true); }
+  try{ await apiPost({action:"setViewer",flat,on}); await refresh(true); await loadAdmin(); renderAll(); toast(on?"Flat "+flat+" now has view-only admin access.":"Access removed for flat "+flat+"."); }catch(err){ toast(err.message,true); }
+}
+function memberModal(f){
+  const x=(adminData.pins||{})[f]||{}, fl=byFlat(f)||{}, ph=adminData.phones[f];
+  const sup=String((data.config&&data.config.superFlat)||"")===f, isV=(adminData.viewers||[]).includes(f);
+  const role=sup?"Super admin":isV?"Admin (view-only)":"Member";
+  openModal({title:"Flat "+esc(f),sub:esc(fl.owner||""),
+    body:`<div class="detail"><span>Registration</span><b class="${x.changed?"g":""}">${x.changed?"Registered":"Not registered yet"}</b></div><div class="detail"><span>Role</span><b>${role}</b></div>${cleanPhone(ph)?"":`<p class="dueline">No valid phone number for this flat in the Sheet, so WhatsApp invite will ask you to pick a contact.</p>`}`,
+    actions:[{label:"Close",cls:"ghost",cancel:true},
+      {label:x.changed?"Invite again":"Invite on WhatsApp",cls:"green",onClick:async close=>{ close(); shareModal(`*${data.config.association}*\nPlease open our app and register: ${location.origin}\nTap Sign in, then "Create your PIN". Use flat number ${f} and choose your own PIN.`,"Invite flat "+f,cleanPhone(ph)); }},
+      ...(x.changed?[{label:"Reset PIN",cls:"ghost",onClick:async close=>{ close(); if(!confirm("Reset registration for flat "+f+"?")) return; try{ await apiPost({action:"resetPin",flat:f}); await loadAdmin(); renderAll(); toast("Flat "+f+" can register again."); }catch(err){ toast(err.message,true); } }}]:[]),
+      ...(!sup&&canEdit()?[{label:isV?"Remove admin access":"Make admin (view-only)",cls:"ghost",onClick:async close=>{ close(); await setViewer(f,!isV); }}]:[])]});
 }
 function renderAdmin(){
   const el = $("v-admin");
@@ -934,14 +954,15 @@ function renderAdmin(){
   <div class="card adminblock"><div class="section-head"><h3>Payment requests</h3><div class="count">${adminData.claims.length} waiting</div></div>
     <button class="btn ${adminData.claims.length?"":"ghost"}" data-go="requests">Open payment requests</button></div>
   <div class="card adminblock"><div class="section-head"><h3>Pending flats · reminders</h3><div class="count">${owing.length} flats</div></div>
-    <div class="rows" style="max-height:none">${owing.map(c=>{ const ph=adminData.phones[c.f.flat]; return `<div class="row" style="cursor:default"><span class="fn">${c.f.flat}</span><span class="ow">${esc(c.f.owner)}<em>${rs(c.due)} pending</em></span>${cleanPhone(ph)?`<button class="btn small green" data-act="remind" data-flat="${c.f.flat}">WhatsApp</button>`:`<span class="count">no phone</span>`}</div>`; }).join("")||'<div class="empty">No pending flats.</div>'}</div></div>
+    <div class="pgrid">${owing.map(c=>{ const ph=cleanPhone(adminData.phones[c.f.flat]); return `<div class="ptile"><b class="pfn">${c.f.flat}</b><span class="pnm"><span class="pr"><span class="pn">${esc(c.f.owner)}</span>${ph?`<button type="button" class="cic wa" data-act="remind" data-flat="${c.f.flat}" aria-label="WhatsApp reminder to flat ${c.f.flat}">${waSvg(14)}</button>`:""}</span><em>${rs(c.due)}</em></span></div>`; }).join("")||'<div class="empty">No pending flats.</div>'}</div></div>
   ${canEdit()?`<div class="card adminblock"><div class="section-head"><h3>View-only access</h3><div class="count">${(adminData.viewers||[]).length} flats</div></div>
     <p class="dueline" style="margin:-4px 0 10px">Give a flat owner view-only admin access. After signing in with their flat number and PIN they can see all admin pages, but cannot change anything.</p>
     <div class="chips">${(adminData.viewers||[]).map(f=>`<span class="chip">Flat ${esc(f)}<button type="button" data-act="viewer-rm" data-flat="${esc(f)}" aria-label="Remove">×</button></span>`).join("")||'<span class="dueline">No one yet.</span>'}</div>
     <div class="field"><label for="vwFlat">Flat number</label><input id="vwFlat" inputmode="numeric" maxlength="3" placeholder="e.g. 302"></div><button class="btn" data-act="viewer-add">Give view-only access</button></div>`:""}
-  <div class="card adminblock"><div class="section-head"><h3>Member registrations</h3><div class="count">${Object.keys(adminData.pins||{}).length} flats</div></div>
-    <p class="dueline" style="margin:-4px 0 10px">Members register themselves in the app with their flat number and their own PIN. If someone forgets the PIN, tap Reset and they can register again.</p>
-    <div class="rows" style="max-height:340px">${Object.keys(adminData.pins||{}).sort().map(f=>{ const x=adminData.pins[f], ow=(byFlat(f)||{}).owner||""; return `<div class="row" style="cursor:default"><span class="fn">${esc(f)}</span><span class="ow">${esc(ow)}<em>${x.changed?"Registered":"Not registered yet"}</em></span>${x.changed?"":`<button class="btn small green" data-act="pinshare" data-flat="${esc(f)}">Invite</button>`}<button class="btn small ghost" data-act="pinreset" data-flat="${esc(f)}">Reset</button></div>`; }).join("")||'<div class="empty">No members yet.</div>'}</div></div>
+  <div class="card adminblock"><div class="section-head"><h3>Member registrations</h3><div class="count">${Object.values(adminData.pins||{}).filter(x=>x.changed).length} of ${Object.keys(adminData.pins||{}).length} registered</div></div>
+    <p class="dueline" style="margin:-4px 0 10px">Members register themselves with their flat number and their own PIN. Tap a flat to invite the owner on WhatsApp or to reset a forgotten PIN.</p>
+    <div class="grid mgrid">${Object.keys(adminData.pins||{}).sort().map(f=>{ const x=adminData.pins[f]; return `<button type="button" class="flat ${x.changed?"s-paid":"s-none"}" data-act="member" data-flat="${esc(f)}" aria-label="Flat ${esc(f)}, ${x.changed?"registered":"not registered yet"}">${esc(f)}${adminMark(f)}</button>`; }).join("")||'<div class="empty">No members yet.</div>'}</div>
+    <div class="legend"><span><i style="background:var(--green)"></i>Registered</span><span><i style="background:#fff;border:1.5px solid var(--ink)"></i>Not registered yet</span><span>Tap a flat for Invite / Reset</span></div></div>
   <div class="card adminblock"><div class="section-head"><h3>Payments received · ${monthLabel()}</h3><div class="count">${pays.length} flats</div></div>
     <div class="tablewrap"><table><thead><tr><th>Last payment</th><th>Flat</th><th>Owner</th><th class="num">Total received</th><th></th></tr></thead><tbody>${pays.map(p=>`<tr><td>${fmtDate(p.date)}</td><td><b>${esc(p.flat)}</b></td><td>${esc((byFlat(p.flat)||{}).owner||"")}</td><td class="num">${rs(p.amount)}</td><td class="num">${canEdit()?`<button class="btn small ghost" data-editpay="${esc(p.flat)}">Edit</button>`:""}</td></tr>`).join("")}</tbody></table></div></div>
   <p class="dueline" style="text-align:center">All data is stored in your Google Sheet.</p>`;
@@ -1031,26 +1052,46 @@ document.addEventListener("click",e=>{ const b=e.target.closest("[data-mflat]");
 let recD=null, recCat="all", recMonth="", recErr="";
 function recMonths(){ const out=[], d=new Date(); const am=data&&data.config&&data.config.month; if(am) out.push(am); for(let i=0;i<8;i++){ const x=new Date(d.getFullYear(),d.getMonth()-i,1); const k=x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0"); if(!out.includes(k)) out.push(k); } return out.sort().reverse(); }
 async function loadRecords(){ if(!recMonth) recMonth=(data&&data.config&&data.config.month)||recMonths()[0]; recErr=""; recD=null; renderRecords(); try{ recD=await apiPost({action:"records",month:recMonth,folders:true}); }catch(e){ recErr=e.message; } renderRecords(); }
+function editRecModal(r){
+  const own=r.category==="owner";
+  openModal({title:own?"Edit note · Flat "+esc(r.flat):"Edit record",sub:own?"You can add a committee note to this screenshot. The payment amount and dues are not changed here.":"",
+    body:own?`<div class="field"><label for="erNote">Note</label><textarea id="erNote" maxlength="200" style="min-height:90px">${esc(r.note||"")}</textarea></div>`
+      :`<div class="field"><label for="erTitle">Title</label><input id="erTitle" maxlength="80" value="${esc(r.title)}"></div><div class="two"><div class="field"><label for="erDate">Date</label><input type="date" id="erDate" value="${esc(String(r.date).slice(0,10))}"></div><div class="field"><label for="erAmt">Amount (₹)</label><input type="number" id="erAmt" step="0.01" inputmode="decimal" value="${r.amount||""}"></div></div><div class="field"><label for="erNote">Note (optional)</label><input id="erNote" maxlength="200" value="${esc(r.note||"")}"></div>`,
+    actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Save",onClick:async close=>{
+      const body={action:"editRecord",id:r.id,note:$("erNote").value};
+      if(!own){ body.title=$("erTitle").value; body.date=$("erDate").value; body.amount=$("erAmt").value; if(!body.title.trim()) throw new Error("Write a short title"); if(!body.date) throw new Error("Choose a date"); }
+      await apiPost(body); close(); toast("Saved."); loadRecords(); }}]});
+}
 function renderRecords(){
   const el=$("v-records"); if(!el) return;
   if(!isAdmin()){ el.innerHTML=""; return; }
   if(recErr){ el.innerHTML=`<div class="card adminblock"><div class="section-head"><h3>Could not load</h3></div><p class="dueline" style="color:#c81e45">${esc(recErr)}</p><button class="btn" data-go="records">Try again</button></div>`; return; }
   if(!recD){ el.innerHTML='<div class="empty">Loading…</div>'; return; }
   const list=recD.records.filter(r=>recCat==="all"||r.category===recCat), f=recD.folders||{};
-  const tabs=[["all","All"],["owner","Owners"],["tanker","Tanker"],["repair","Repairs"]];
+  const tabs=[["all","All"],["owner","Maintenance"],["tanker","Tanker"],["repair","Development"]];
+  const links=(recCat==="all"?["owner","tanker","repair"]:[recCat]).filter(k=>f[k]).map(k=>`<a class="btn small tiny ghost" href="${esc(f[k])}" target="_blank" rel="noopener">📁 ${esc(CAT_LABEL[k])} ↗</a>`).join("");
+  const card=r=>{
+    const own=r.category==="owner";
+    const head=own?`Flat ${esc(r.flat)}${r.owner?" · "+esc(r.owner):""}`:esc(r.title);
+    const meta=own?`Paid ${r.amount?rs(r.amount):""} on ${fmtDate(r.date)}${r.ref?" · Ref "+esc(r.ref):""}${r.pending?" · waiting for approval":""}${r.by?" · recorded by "+esc(r.by):""}${r.note?"<br>"+esc(r.note):""}`:`${esc(CAT_LABEL[r.category]||r.category)} · ${fmtDate(r.date)}${r.note?" · "+esc(r.note):""}${r.by?" · by "+esc(r.by):""}`;
+    return `<div class="rec"><div class="t"><span>${head}</span><span>${!own&&r.amount?rs(r.amount):""}</span></div><div class="m">${meta}</div>
+    <div class="stack" style="margin-top:0"><button class="btn small tiny ghost" data-rview="${esc(r.id)}">📎 View</button>${canEdit()?`<button class="btn small tiny ghost" data-redit="${esc(r.id)}">✎ Edit</button><button class="btn small tiny ghost danger" data-rdel="${esc(r.id)}">🗑 Delete</button>`:""}</div></div>`;
+  };
   el.innerHTML=`<div class="section-head"><h3>Records &amp; proofs</h3></div>
-  <p class="dueline" style="margin:-6px 0 12px">Payment screenshots and bills are kept here, in three Google Drive folders: owner payments, water tanker payments, and repairs &amp; renewals. They also show against the matching expense in the Fund statement.</p>
+  <p class="dueline" style="margin:-6px 0 12px">Owner payment screenshots and bills are kept here by month, and also saved in Google Drive. They show against the matching expense in the Fund statement.</p>
   <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap"><div class="field" style="max-width:220px;margin:0"><label for="rcMonth">Month</label><select id="rcMonth">${recMonths().map(m=>`<option value="${m}" ${m===recMonth?"selected":""}>${monthLabelOf(m)}</option>`).join("")}</select></div>${canEdit()?`<button class="btn" id="rcAdd">+ Add bill / screenshot</button>`:""}</div>
-  <div class="seg" id="rcTabs" style="margin:12px 6px 12px 0">${tabs.map(([k,l])=>`<button data-rc="${k}" class="${recCat===k?"on":""}">${l}</button>`).join("")}</div>
-  ${list.map(r=>`<div class="rec"><div class="t"><span>${esc(r.title)}</span><span>${r.amount?rs(r.amount):""}</span></div><div class="m">${esc(CAT_LABEL[r.category]||r.category)} · ${fmtDate(r.date)}${r.note?" · "+esc(r.note):""}${r.by?" · by "+esc(r.by):""}</div>
-    <div class="stack" style="margin-top:0"><button class="btn small tiny ghost" data-rview="${esc(r.id)}">📎 View ${r.n}</button>${canEdit()&&r.category!=="owner"?`<button class="btn small tiny ghost danger" data-rdel="${esc(r.id)}">Delete</button>`:""}</div></div>`).join("")||'<div class="empty">Nothing saved for this month yet.</div>'}
-  ${recD.folderErr?`<p class="notebox">The Drive folders could not be created: ${esc(recD.folderErr)}. In Apps Script run <b>authorize</b> once and click Allow, then Deploy &gt; New version. Open Connection check to see the exact step that fails.</p>`:""}<div class="card adminblock"><div class="section-head"><h3>Google Drive folders</h3></div><p class="dueline" style="margin:-4px 0 10px">Open the folders in Drive to share them with the committee.</p>
-    <div class="stack" style="margin-top:0">${["owner","tanker","repair"].map(k=>f[k]?`<a class="btn small tiny ghost" href="${esc(f[k])}" target="_blank" rel="noopener">${esc(CAT_LABEL[k])} ↗</a>`:"").join("")||'<span class="dueline">Folders appear after the first upload.</span>'}</div></div>`;
+  <div class="seg" id="rcTabs" style="margin:12px 6px 8px 0">${tabs.map(([k,l])=>`<button data-rc="${k}" class="${recCat===k?"on":""}">${l}</button>`).join("")}</div>
+  ${links?`<div class="stack" style="margin:0 6px 12px 0">${links}</div>`:""}
+  ${list.map(card).join("")||'<div class="empty">Nothing saved for this month yet.</div>'}
+  ${recD.folderErr?`<p class="notebox">The Drive folders could not be created: ${esc(recD.folderErr)}. In Apps Script run <b>authorize</b> once and click Allow, then Deploy &gt; New version. Open Connection check to see the exact step that fails.</p>`:""}`;
   $("rcMonth").onchange=e=>{ recMonth=e.target.value; loadRecords(); };
   $("rcTabs").onclick=e=>{ const b=e.target.closest("[data-rc]"); if(b){ recCat=b.dataset.rc; renderRecords(); } };
   if($("rcAdd")) $("rcAdd").onclick=()=>proofModal({date:recMonth===todayISO().slice(0,7)?todayISO():recMonth+"-01"},()=>loadRecords());
   el.querySelectorAll("[data-rview]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.rview); if(r) proofGallery([r],r.title); });
-  el.querySelectorAll("[data-rdel]").forEach(b=>b.onclick=()=>confirmModal("Delete this record?","The photos are removed from your Google Drive folder too.","Delete",async()=>{ await apiPost({action:"deleteRecord",id:b.dataset.rdel}); toast("Deleted."); loadRecords(); }));
+  el.querySelectorAll("[data-rdel]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.rdel); if(!r) return;
+    if(r.category==="owner") return confirmModal("Delete this screenshot?","Only the screenshot is removed (also from your Google Drive folder). The payment and the flat's dues stay as they are.","Delete screenshot",async()=>{ await apiPost({action:"deleteProof",id:r.id}); toast("Screenshot deleted."); loadRecords(); });
+    confirmModal("Delete this record?","The photos are removed from your Google Drive folder too.","Delete",async()=>{ await apiPost({action:"deleteRecord",id:r.id}); toast("Deleted."); loadRecords(); }); });
+  el.querySelectorAll("[data-redit]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.redit); if(r) editRecModal(r); });
 }
 
 /* ---------- monthly fund statement + water tankers ---------- */
@@ -1078,7 +1119,7 @@ function pickerBind(id,max){
   $(id+"T").onclick=e=>{ const r=e.target.closest("[data-pk]"); if(r){ arr.splice(Number(r.dataset.pk),1); draw(); } };
   return ()=>arr.slice();
 }
-const CAT_LABEL={owner:"Owner payments",tanker:"Water tanker payments",repair:"Repairs & renewals"};
+const CAT_LABEL={owner:"Maintenance payments",tanker:"Water tanker payments",repair:"Development activities"};
 async function proofGallery(items,title){
   openModal({title:title||"Bills and proofs",body:`<div id="pgBox">${items.map(r=>`<div class="rec"><div class="t"><span>${esc(r.title)}</span><span>${r.amount?rs(r.amount):""}</span></div><div class="m">${fmtDate(r.date)}${r.note?" · "+esc(r.note):""}</div>${Array.from({length:r.n},(_,i)=>`<div class="pf" data-rid="${esc(r.id)}" data-i="${i}" style="text-align:center;color:#6b6358;font-size:13px">Loading…</div>`).join("")}</div>`).join("")||'<div class="empty">Nothing here yet.</div>'}</div>`,actions:[{label:"Close",cls:"ghost",cancel:true}]});
   for(const box of Array.from(document.querySelectorAll("#pgBox .pf"))){
@@ -1569,6 +1610,7 @@ document.addEventListener("click",async e=>{
     if(a==="claim-login") return loginModal("claim");
     if(a==="record") return paymentModal(act.dataset.flat);
     if(a==="remind"){ const c=calc(byFlat(act.dataset.flat)); const ph = adminData&&adminData.phones[c.f.flat]; return shareModal(flatReminder(c),"Remind flat "+c.f.flat, cleanPhone(ph)); }
+    if(a==="member") return memberModal(act.dataset.flat);
     if(a==="pinshare"){ const f=act.dataset.flat, x=adminData.pins[f], ph=adminData.phones[f]; return shareModal(`*${data.config.association}*\nPlease open our app and register: ${location.origin}\nTap Sign in, then "Create your PIN". Use flat number ${f} and choose your own PIN.`,"Invite flat "+f, cleanPhone(ph)); }
     if(a==="pinreset"){ if(!confirm("Reset registration for flat "+act.dataset.flat+"?")) return; apiPost({action:"resetPin",flat:act.dataset.flat}).then(async j=>{ await loadAdmin(); renderAll(); toast("Flat "+act.dataset.flat+" can register again with a new PIN."); }).catch(err=>toast(err.message)); return; }
     if(a==="changepin") return pinModal(false,"");
