@@ -1051,7 +1051,7 @@ document.addEventListener("click",e=>{ const b=e.target.closest("[data-mflat]");
 /* ---------- records & proofs (admin) ---------- */
 let recD=null, recCat="all", recMonth="", recErr="";
 function recMonths(){ const out=[], d=new Date(); const am=data&&data.config&&data.config.month; if(am) out.push(am); for(let i=0;i<8;i++){ const x=new Date(d.getFullYear(),d.getMonth()-i,1); const k=x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0"); if(!out.includes(k)) out.push(k); } return out.sort().reverse(); }
-async function loadRecords(){ if(!recMonth) recMonth=(data&&data.config&&data.config.month)||recMonths()[0]; recErr=""; recD=null; renderRecords(); try{ recD=await apiPost({action:"records",month:recMonth,folders:true}); }catch(e){ recErr=e.message; } renderRecords(); }
+async function loadRecords(){ if(!recMonth) recMonth=(data&&data.config&&data.config.month)||recMonths()[0]; recErr=""; recD=null; renderRecords(); try{ recD=await apiPost({action:"records",month:recMonth==="all"?"":recMonth,folders:true}); }catch(e){ recErr=e.message; } renderRecords(); }
 function editRecModal(r){
   const own=r.category==="owner";
   openModal({title:own?"Edit note · Flat "+esc(r.flat):"Edit record",sub:own?"You can add a committee note to this screenshot. The payment amount and dues are not changed here.":"",
@@ -1079,14 +1079,14 @@ function renderRecords(){
   };
   el.innerHTML=`<div class="section-head"><h3>Records &amp; proofs</h3></div>
   <p class="dueline" style="margin:-6px 0 12px">Owner payment screenshots and bills are kept here by month, and also saved in Google Drive. They show against the matching expense in the Fund statement.</p>
-  <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap"><div class="field" style="max-width:220px;margin:0"><label for="rcMonth">Month</label><select id="rcMonth">${recMonths().map(m=>`<option value="${m}" ${m===recMonth?"selected":""}>${monthLabelOf(m)}</option>`).join("")}</select></div>${canEdit()?`<button class="btn" id="rcAdd">+ Add bill / screenshot</button>`:""}</div>
+  <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap"><div class="field" style="max-width:220px;margin:0"><label for="rcMonth">Month</label><select id="rcMonth"><option value="all" ${recMonth==="all"?"selected":""}>All months</option>${recMonths().map(m=>`<option value="${m}" ${m===recMonth?"selected":""}>${monthLabelOf(m)}</option>`).join("")}</select></div>${canEdit()?`<button class="btn" id="rcAdd">+ Add bill / screenshot</button>`:""}</div>
   <div class="seg" id="rcTabs" style="margin:12px 6px 8px 0">${tabs.map(([k,l])=>`<button data-rc="${k}" class="${recCat===k?"on":""}">${l}</button>`).join("")}</div>
   ${links?`<div class="stack" style="margin:0 6px 12px 0">${links}</div>`:""}
-  ${list.map(card).join("")||'<div class="empty">Nothing saved for this month yet.</div>'}
+  ${list.map(card).join("")||'<div class="empty">Nothing saved for this month yet. Pick "All months" above to see every month.</div>'}
   ${recD.folderErr?`<p class="notebox">The Drive folders could not be created: ${esc(recD.folderErr)}. In Apps Script run <b>authorize</b> once and click Allow, then Deploy &gt; New version. Open Connection check to see the exact step that fails.</p>`:""}`;
   $("rcMonth").onchange=e=>{ recMonth=e.target.value; loadRecords(); };
   $("rcTabs").onclick=e=>{ const b=e.target.closest("[data-rc]"); if(b){ recCat=b.dataset.rc; renderRecords(); } };
-  if($("rcAdd")) $("rcAdd").onclick=()=>proofModal({date:recMonth===todayISO().slice(0,7)?todayISO():recMonth+"-01"},()=>loadRecords());
+  if($("rcAdd")) $("rcAdd").onclick=()=>proofModal({date:(recMonth==="all"||recMonth===todayISO().slice(0,7))?todayISO():recMonth+"-01"},()=>loadRecords());
   el.querySelectorAll("[data-rview]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.rview); if(r) proofGallery([r],r.title); });
   el.querySelectorAll("[data-rdel]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.rdel); if(!r) return;
     if(r.category==="owner") return confirmModal("Delete this screenshot?","Only the screenshot is removed (also from your Google Drive folder). The payment and the flat's dues stay as they are.","Delete screenshot",async()=>{ await apiPost({action:"deleteProof",id:r.id}); toast("Screenshot deleted."); loadRecords(); });

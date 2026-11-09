@@ -468,6 +468,7 @@ window.UI_TEXT_TE = {
   "Delete this screenshot?": "ఈ స్క్రీన్‌షాట్ తొలగించాలా?",
   "Edit record": "రికార్డ్ ఎడిట్",
   "Saved.": "సేవ్ అయింది.",
+  "All months": "అన్ని నెలలు",
   "+ Add screenshot": "+ స్క్రీన్‌షాట్ జోడించండి",
   "Change screenshot": "స్క్రీన్‌షాట్ మార్చండి",
   "Screenshot added": "స్క్రీన్‌షాట్ జోడించబడింది",
