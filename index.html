@@ -1172,32 +1172,69 @@ async function proofGallery(items,title){
   }
 }
 async function openProofsByKey(key,title){ try{ const j=await apiPost({action:"records",key}); proofGallery(j.records,title); }catch(err){ toast(err.message,true); } }
-function proofModal(pre,after){
-  pre=pre||{};
-  openModal({title:"Add bill / screenshot",sub:"Saved privately in your Google Drive folder. For Maintenance, this also records the owner's payment and updates the flat's dues.",
-    body:`<div class="field"><label for="rcCat">Type</label><select id="rcCat"><option value="owner">Maintenance (owner payment)</option><option value="tanker">Water tanker</option><option value="repair">Activities (repairs, renewals, materials)</option></select></div>
+function stdExpenses(){
+  const sts=((fundData&&fundData.statements)||[]).slice(0,4); if(!sts.length) return [];
+  const need=Math.min(3,sts.length), map={}, done=new Set((sts[0].expenses||[]).map(e=>String(e.item).trim().toLowerCase()));
+  sts.forEach(st=>{ const seen=new Set(); st.expenses.forEach(e=>{ if(/water\s*tanker\s*utili/i.test(e.item)) return; const k=String(e.item).trim().toLowerCase(); if(seen.has(k)) return; seen.add(k); (map[k]=map[k]||{item:String(e.item).trim(),amts:[]}).amts.push(e.amount); }); });
+  return Object.keys(map).map(k=>map[k]).filter(x=>x.amts.length>=need).map(x=>({item:x.item,last:x.amts[0],fixed:x.amts.every(a=>Math.abs(a-x.amts[0])<0.01),done:done.has(x.item.toLowerCase())}));
+}
+async function proofModal(pre,after){
+  pre=pre||{}; const attach=!!(pre.key||pre.attach);
+  if(!attach&&!fundData){ try{ fundData=await apiPost({action:"fundStatement"}); }catch(e){} }
+  const std=attach?[]:stdExpenses();
+  const types=attach?[["repair","Activities (repairs, renewals, materials)"],["tanker","Water tanker"]]:[["owner","Maintenance (owner payment)"],["tanker","Water tanker"],["expense","Monthly / standard expense"],["repair","Activities (repairs, materials, development)"]];
+  openModal({title:"Add bill / screenshot",sub:"Saved privately in your Google Drive folder. Maintenance also records the owner's payment. Water tanker and Monthly expense are also written to your Sheet.",
+    body:`<div class="field"><label for="rcCat">Type</label><select id="rcCat">${types.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select></div>
     <div id="rcOwn"><div class="field"><label for="rcFlat">Flat</label><select id="rcFlat">${flats().map(f=>`<option value="${f.flat}">${f.flat} — ${esc(f.owner)}</option>`).join("")}</select></div><div class="hint" id="rcHint"></div>
     <div class="two"><div class="field"><label for="rcMode">Mode</label><select id="rcMode"><option value="">Not specified</option><option>UPI</option><option>Cash</option><option>Bank transfer</option><option>Cheque</option></select></div><div class="field"><label for="rcRef">Reference / UTR</label><input id="rcRef" maxlength="40"></div></div></div>
-    <div class="two"><div class="field"><label for="rcDate">Date</label><input type="date" id="rcDate" value="${esc(pre.date||todayISO())}"></div><div class="field"><label for="rcAmt">Amount (₹)</label><input type="number" id="rcAmt" inputmode="decimal" value="${pre.amount||""}"></div></div>
-    <div class="field" id="rcTitleF"><label for="rcTitle">What is it for</label><input id="rcTitle" maxlength="80" value="${esc(pre.title||"")}" placeholder="e.g. Motor repair bill"></div>
+    <div id="rcTk"><div class="two"><div class="field"><label for="rcTKind">Tanker type</label><select id="rcTKind"><option value="HMWSSB">GHMC / HMWSSB</option><option value="Commercial">Private / Commercial</option></select></div><div class="field"><label for="rcTNo">Token / vehicle no (optional)</label><input id="rcTNo" maxlength="12"></div></div>
+    <div class="two"><div class="field"><label for="rcTCost">Cost ₹</label><input type="number" id="rcTCost" value="1000" inputmode="decimal"></div><div class="field"><label for="rcTBata">Driver bata ₹</label><input type="number" id="rcTBata" value="100" inputmode="decimal"></div></div></div>
+    <div class="field" id="rcStdF"><label for="rcStd">What is it for</label><select id="rcStd">${std.map((x,i)=>`<option value="${i}">${esc(x.item)}${x.fixed?" · "+rs(x.last):""}${x.done?" (already in "+esc(((fundData.statements[0]||{}).label)||"this month")+")":""}</option>`).join("")}<option value="o">Other (type below)…</option></select><input id="rcStdO" maxlength="80" placeholder="e.g. Pest control" style="margin-top:8px"><div class="hint" id="rcStdH" style="margin-top:6px"></div></div>
+<div class="two"><div class="field"><label for="rcDate">Date</label><input type="date" id="rcDate" value="${esc(pre.date||todayISO())}"></div><div class="field" id="rcAmtF"><label for="rcAmt">Amount (₹)</label><input type="number" id="rcAmt" inputmode="decimal" value="${pre.amount||""}"></div></div>
+        <div class="field" id="rcTitleF"><label for="rcTitle">What is it for</label><input id="rcTitle" maxlength="80" value="${esc(pre.title||"")}" placeholder="e.g. Motor repair bill"></div>
     ${pickerHTML("rcP","Photos or screenshots (up to 4)")}
     <div class="field"><label for="rcNote">Note (optional)</label><input id="rcNote" maxlength="200"></div>`,
     actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Save",onClick:async close=>{
-      const photos=getRcP().map(d=>({data:d})); if(!photos.length) throw new Error("Add at least one photo or screenshot");
-      if($("rcCat").value==="owner"){
-        const amount=parseFloat($("rcAmt").value); if(!$("rcDate").value) throw new Error("Choose the date received"); if(!(amount>0)) throw new Error("Enter an amount greater than zero");
-        const fl2=$("rcFlat").value; const pj=await apiPost({action:"addPayment",token,flat:fl2,date:$("rcDate").value,amount,mode:$("rcMode").value,ref:$("rcRef").value,note:$("rcNote").value,photo:photos[0].data});
+      const cat=$("rcCat").value, photos=getRcP().map(d=>({data:d})), date=$("rcDate").value;
+      if(cat==="owner"){
+        if(!photos.length) throw new Error("Add the payment screenshot");
+        const amount=parseFloat($("rcAmt").value); if(!date) throw new Error("Choose the date received"); if(!(amount>0)) throw new Error("Enter an amount greater than zero");
+        const fl2=$("rcFlat").value; const pj=await apiPost({action:"addPayment",token,flat:fl2,date,amount,mode:$("rcMode").value,ref:$("rcRef").value,note:$("rcNote").value,photo:photos[0].data});
         close(); try{ await refresh(true); }catch(e){} toast(pj.photoFailed?rs(amount)+" recorded, but the screenshot could not be saved"+(pj.photoReason?" ("+pj.photoReason+")":"")+".":rs(amount)+" recorded for flat "+fl2+".",!!pj.photoFailed); if(after) after(); return;
       }
-      await apiPost({action:"addRecord",category:$("rcCat").value,date:$("rcDate").value,title:$("rcTitle").value,amount:$("rcAmt").value,note:$("rcNote").value,photos,expenseKey:pre.key||""});
+      if(cat==="tanker"&&!attach){
+        if(!date) throw new Error("Choose the date");
+        const tb={kind:$("rcTKind").value,tokenNo:$("rcTNo").value,cost:$("rcTCost").value,bata:$("rcTBata").value}, tamt=(parseFloat(tb.cost)||0)+(parseFloat(tb.bata)||0), ttitle="Tanker "+(tb.tokenNo||tb.kind);
+        tankData=await apiPost(Object.assign({action:"addTanker",date},tb)); let tn="Tanker added to the water Tanker sheet.";
+        if(photos.length){ try{ await apiPost({action:"addRecord",category:"tanker",date,title:ttitle,amount:tamt,note:$("rcNote").value,photos}); tn="Tanker added with its bill."; }catch(err){ tn="Tanker added, but the bill could not be saved: "+err.message; } }
+        try{ fundData=await apiPost({action:"fundStatement"}); }catch(x){} try{ const rj=await apiPost({action:"records",category:"tanker",month:""}); tankProofs=rj.records||[]; }catch(x){}
+        close(); toast(tn); if(after) after(); return;
+      }
+      if(cat==="expense"){
+        const sv=$("rcStd").value, item=sv==="o"?$("rcStdO").value.trim():std[Number(sv)].item, amount=parseFloat($("rcAmt").value);
+        if(!date) throw new Error("Choose the date"); if(!item) throw new Error("Write what it was for"); if(!(amount>0)) throw new Error("Enter an amount");
+        fundData=await apiPost({action:"addExpense",date,item,amount}); let note="Expense added to the Balance sheet.";
+        if(photos.length){ const it=(fundData.statements[0].expenses||[]).find(e=>e.date===date&&e.item.toLowerCase()===item.toLowerCase()&&Math.abs(e.amount-amount)<0.01);
+          try{ await apiPost({action:"addRecord",category:"repair",date,title:item,amount,note:$("rcNote").value,photos,expenseKey:it?it.key:""}); note="Expense added with its bill."; }catch(err){ note="Expense added, but the bill could not be saved: "+err.message; } }
+        close(); toast(note); if(after) after(); return;
+      }
+      if(!photos.length) throw new Error("Add at least one photo or screenshot");
+      await apiPost({action:"addRecord",category:cat,date,title:$("rcTitle").value,amount:$("rcAmt").value,note:$("rcNote").value,photos,expenseKey:pre.key||""});
       close(); toast("Saved to the records."); if(after) after();
     }}]});
-  if(pre.category) $("rcCat").value=pre.category; else if(pre.key) $("rcCat").value="repair";
+  if(pre.category&&types.some(t=>t[0]===pre.category)) $("rcCat").value=pre.category; else if(attach) $("rcCat").value="repair";
   const getRcP=pickerBind("rcP",4);
   const rcHint=()=>{ const f=byFlat($("rcFlat").value); if(!f) return; const c=calc(f); $("rcHint").innerHTML=`${esc(c.f.owner)} · Billed <b>${rs(c.f.total)}</b> · Received <b>${rs(c.paid)}</b> · Balance <b>${rs(c.due)}</b>`; if(!$("rcAmt").dataset.t) $("rcAmt").value=c.due>0?c.due.toFixed(2):""; };
-  const rcType=()=>{ const o=$("rcCat").value==="owner"; $("rcOwn").hidden=!o; $("rcTitleF").hidden=o; document.querySelector('label[for="rcDate"]').textContent=o?"Date received":"Date"; document.querySelector('label[for="rcNote"]').textContent=o?"Note (optional)":"Note (optional)"; if(o){ $("rcAmt").dataset.t=""; rcHint(); } else { $("rcAmt").value=pre.amount||""; } };
+  const stdPick=()=>{ const sv=$("rcStd").value, o=sv==="o"; $("rcStdO").hidden=!o; if(o){ $("rcStdH").textContent=""; if(!$("rcAmt").dataset.t) $("rcAmt").value=""; return; } const x=std[Number(sv)]; $("rcAmt").dataset.t=""; $("rcAmt").value=x.fixed?x.last:""; $("rcStdH").textContent=x.fixed?"Standard amount filled in. Change it if this month is different.":"Amount changes every month. Last month: "+rs(x.last)+". Enter this month's bill."; };
+  const rcType=()=>{ const c=$("rcCat").value, o=c==="owner", tk=c==="tanker"&&!attach, ex=c==="expense";
+    $("rcOwn").hidden=!o; $("rcTk").hidden=!tk; $("rcAmtF").hidden=tk; $("rcStdF").hidden=!ex; $("rcTitleF").hidden=o||tk||ex;
+    document.querySelector('label[for="rcDate"]').textContent=o?"Date received":"Date";
+    document.querySelector('#rcP'+'B').parentNode.querySelector('label').textContent=(tk||ex)?"Bill or screenshot (optional, up to 4)":"Photos or screenshots (up to 4)";
+    if(o){ $("rcAmt").dataset.t=""; rcHint(); } else if(ex){ stdPick(); } else if(!tk){ $("rcAmt").value=pre.amount||""; } };
   $("rcAmt").oninput=()=>{ $("rcAmt").dataset.t="1"; };
   $("rcFlat").onchange=()=>{ $("rcAmt").dataset.t=""; rcHint(); };
+  $("rcStd").onchange=stdPick;
+  $("rcTKind").onchange=()=>{ $("rcTCost").value=$("rcTKind").value==="Commercial"?1400:1000; };
   $("rcCat").onchange=rcType; rcType();
 }
 
@@ -1391,7 +1428,7 @@ function bindTanker(){
   document.querySelectorAll("[data-tprm]").forEach(b=>b.onclick=()=>{ const l=tankProofs.filter(r=>String(r.month)===b.dataset.tprm); if(l.length) proofGallery(l,"Tanker bills · "+fMonthLabel(b.dataset.tprm)); });
   const pick=a=>{ const [mi,ei]=a.split("|").map(Number); const e=tankData.months[mi].entries[ei]; return [mi,ei,e]; };
   document.querySelectorAll("[data-tatt]").forEach(b=>b.onclick=()=>{ const [mi,ei,e]=pick(b.dataset.tatt); const d=String(e.date).slice(0,10), l=tankProofs.filter(r=>String(r.date).slice(0,10)===d);
-    attachModal({title:"Tanker · "+fmtDate(e.date),n:l.length,canAdd:canEdit(),onView:()=>proofGallery(l,"Tanker · "+fmtDate(e.date)),onAdd:()=>proofModal({category:"tanker",date:d,title:"Tanker "+(tripNo(e)||tripKind(e)),amount:e.total},()=>loadFund())}); });
+    attachModal({title:"Tanker · "+fmtDate(e.date),n:l.length,canAdd:canEdit(),onView:()=>proofGallery(l,"Tanker · "+fmtDate(e.date)),onAdd:()=>proofModal({category:"tanker",attach:true,date:d,title:"Tanker "+(tripNo(e)||tripKind(e)),amount:e.total},()=>loadFund())}); });
   document.querySelectorAll("[data-tedit]").forEach(b=>b.onclick=()=>{ const [mi,ei]=pick(b.dataset.tedit); tankerModal(mi,ei); });
   const add=$("tAdd"); if(add) add.onclick=()=>tankerModal(null);
   document.querySelectorAll("[data-tdel]").forEach(b=>b.onclick=()=>{
