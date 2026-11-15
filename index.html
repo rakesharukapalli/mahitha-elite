@@ -111,7 +111,6 @@ details.fsub>summary h3{font-size:14px}
 .detail span{color:#d2e0ec}.detail b{font-weight:900;text-align:right;font-variant-numeric:tabular-nums}
 .detail b.g{color:var(--green)}.detail b.r{color:var(--red)}
 .subhead{margin:14px 0 4px;color:#9fb2c5;font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase}
-.nimg{display:block;width:100%;max-height:420px;object-fit:cover;border-radius:12px;margin-top:8px}
 .notice{margin-top:14px;padding:12px;border-radius:13px;background:rgba(245,185,66,.09);border:1px solid rgba(245,185,66,.18);color:#f8d477;font-size:12px;line-height:1.45}
 .placeholder{text-align:center;padding:40px 15px;color:#8fa4b9}.placeholder .icon{font-size:36px;margin-bottom:8px}
 .pill{display:inline-block;font-size:11px;font-weight:800;padding:5px 10px;border-radius:20px;border:1px solid;white-space:nowrap}
@@ -374,6 +373,7 @@ h1{font-weight:900;letter-spacing:-.8px}.sub{color:var(--soft)}
       <p>Pick your flat to see this month's maintenance and water bill.</p>
       <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="search" maxlength="3" inputmode="numeric" placeholder="Enter flat number, e.g. 301" aria-label="Flat number"><button class="btn" id="findBtn">View Due</button></div>
     </div>
+    <div id="quickBar" hidden></div>
     <main class="layout">
       <section class="card flats">
         <div class="section-head"><h3>Choose Flat</h3><div class="count" id="count"></div></div>
@@ -427,6 +427,7 @@ h1{font-weight:900;letter-spacing:-.8px}.sub{color:var(--soft)}
   <section id="v-works" hidden></section>
   <section id="v-meet" hidden></section>
   <section id="v-records" hidden></section>
+  <section id="v-residents" hidden></section>
 
   <div class="footer" id="footer"></div>
 </div>
@@ -621,7 +622,7 @@ function popupFresh(fresh){
   const claims=fresh.filter(x=>x.type==="claim"), rc=fresh.find(x=>x.type==="receipt"), rp=fresh.find(x=>x.type==="reply");
   if(claims.length) claimPopup(claims); else if(rc) replyPopup(rc); else if(rp) replyPopup(rp);
 }
-function noticeToast(j){ let extra=""; if(j&&j.mailed) extra+=" Emailed to owners."; if(j&&j.imageFailed) extra+=" The picture could not be saved."; const m={sent:"Notice posted. Phone notification sent.",nobody:"Notice posted. No phone has notifications turned on yet, so nobody got a phone alert.",error:"Notice posted, but the phone notification failed. Check the OneSignal keys.",off:"Notice posted. (Phone notifications are not set up.)"}; toast((m[j&&j.push]||"Notice posted.")+extra, j&&(j.push==="nobody"||j.push==="error"||j.imageFailed)); }
+function noticeToast(j){ const m={sent:"Notice posted. Phone notification sent.",nobody:"Notice posted. No phone has notifications turned on yet, so nobody got a phone alert.",error:"Notice posted, but the phone notification failed. Check the OneSignal keys.",off:"Notice posted. (Phone notifications are not set up.)"}; toast(m[j&&j.push]||"Notice posted.", j&&(j.push==="nobody"||j.push==="error")); }
 function noticePopup(un){
   const n = un[0];
   openModal({title:un.length>1 ? un.length+" new notices" : "New notice",sub:"From the committee · "+fmtDate(n.date),
@@ -685,15 +686,15 @@ const ICONS = {
   requests:'<path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h3"/>',
   admin:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 118 0v3"/>'
 };
-const MORE_VIEWS = ["notices","help","requests","utility","meter","works","meet"];
-const VIEW_TITLE = {notices:"Notice board",help:"Complaints & Help",requests:"Payment requests",utility:"Tax & Electricity",meter:"Meter calculator",works:"Tasks",meet:"Meetings",records:"Records & proofs"};
+const MORE_VIEWS = ["notices","help","requests","utility","meter","works","meet","residents"];
+const VIEW_TITLE = {notices:"Notice board",help:"Complaints & Help",requests:"Payment requests",utility:"Tax & Electricity",meter:"Meter calculator",works:"Tasks",meet:"Meetings",records:"Records & proofs",residents:"Residents"};
 ICONS.more='<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>';
 ICONS.utility='<path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>';
 ICONS.meter='<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2M16 16h0"/>';
 ICONS.guide='<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1-1.5 2M12 17h0"/>';
 ICONS.install='<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>';
 ICONS.check='<path d="M5 13l4 4L19 7"/>';
-const VIEWS = ["dues","status","notices","help","fund","requests","admin","more","utility","meter","works","meet","records"];
+const VIEWS = ["dues","status","notices","help","fund","requests","admin","more","utility","meter","works","meet","records","residents"];
 ICONS.works='<path d="M9 11l3 3 8-8M4 12v7h14"/>'; ICONS.meet='<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M15 14.5c3 0 6 1.8 6 5.5"/>'; ICONS.records='<path d="M4 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V7z"/>';
 function badgeCounts(){ return { notices:unseenNotices().length, help:unseenComplaints().length, requests:(isAdmin()&&adminData)?adminData.claims.length:0 }; }
 function renderNav(){
@@ -712,7 +713,7 @@ function renderMore(){
     ["Community",[["notices","Notice board","Announcements from the committee",bc.notices],["help","Complaints & Help","Report a problem, see replies",bc.help],["utility","Tax & Electricity","Property tax and power bill numbers",0]]]
   ];
   if(session) grp.push(["Committee work",[["works","Tasks","Work items and who does them",0],["meet","Meetings","Minutes and decisions",0]]]);
-  if(isAdmin()) grp.push(["Admin tools",[["requests","Payment requests","Check and approve payments",bc.requests],["meter","Meter calculator","Enter water readings",0]]]);
+  if(isAdmin()) grp.push(["Admin tools",[["requests","Payment requests","Check and approve payments",bc.requests],["meter","Meter calculator","Enter water readings",0],["residents","Residents","Family details, birthdays, vehicles",0]]]);
   const app=[["guide","App guide","How to use this app",0]];
   if(deferredInstall&&!standalone) app.push(["install","Install app","Add to your home screen",0]);
   if(isAdmin()) app.push(["conn","Connection check","Test the link to the sheet",0]);
@@ -722,7 +723,7 @@ function renderMore(){
 document.addEventListener("click",e=>{ const t=e.target.closest("[data-more]"); if(!t) return; const k=t.dataset.more;
   if(k==="guide") return showWelcome(); if(k==="install") return doInstall(); if(k==="conn") return connectionModal();
   if(k==="utility"&&!session) return loginModal(); go(k); });
-function go(v){ if(!VIEWS.includes(v)) v="dues"; if(["admin","requests","meter","records"].includes(v)&&!isAdmin()) v="dues"; if(["fund","utility","works","meet"].includes(v)&&!session) v="dues"; view=v; renderNav(); if(v==="more") renderMore(); if(v==="notices"){ renderNotices(); markSeen(); renderNav(); updateBadge(); } if(v==="help"&&isAdmin()){ markSeenC(); renderNav(); updateBadge(); } if(v==="notices") nlRead(["notice"]); if(v==="help") nlRead(["complaint","reply"]); if(v==="requests") nlRead(["claim"]); if(v==="fund") loadFund(); if(v==="utility") loadUtility(); if(v==="meter") loadMeter(); if(v==="works"||v==="meet") loadWorks(); if(v==="records") loadRecords(); try{ history.replaceState(null,"","#"+v); }catch(e){} window.scrollTo({top:0}); }
+function go(v){ if(!VIEWS.includes(v)) v="dues"; if(["admin","requests","meter","records","residents"].includes(v)&&!isAdmin()) v="dues"; if(["fund","utility","works","meet"].includes(v)&&!session) v="dues"; view=v; renderNav(); if(v==="more") renderMore(); if(v==="notices"){ renderNotices(); markSeen(); renderNav(); updateBadge(); } if(v==="help"&&isAdmin()){ markSeenC(); renderNav(); updateBadge(); } if(v==="notices") nlRead(["notice"]); if(v==="help") nlRead(["complaint","reply"]); if(v==="requests") nlRead(["claim"]); if(v==="fund") loadFund(); if(v==="utility") loadUtility(); if(v==="meter") loadMeter(); if(v==="works"||v==="meet") loadWorks(); if(v==="records") loadRecords(); if(v==="residents") loadResidents(); try{ history.replaceState(null,"","#"+v); }catch(e){} window.scrollTo({top:0}); }
 $("nav").addEventListener("click",e=>{ const b=e.target.closest("[data-tab]"); if(b) go(b.dataset.tab); });
 
 /* ---------- toast & modal ---------- */
@@ -882,7 +883,7 @@ function renderNotices(){
   const el = $("noticeFeed");
   if(!data){ el.innerHTML='<div class="empty">Loading…</div>'; return; }
   const fresh = new Set(unseenNotices().map(n=>n.id));
-  el.innerHTML = data.notices.length ? data.notices.map(n=>`<article class="post nt ${fresh.has(n.id)?"fresh":""}"><h4>${esc(n.title)} ${fresh.has(n.id)?'<span class="pill new">New</span>':""}</h4><div class="meta">${fmtDate(n.date)}</div><p>${esc(n.body)}</p>${n.img?`<img class="nimg" loading="lazy" alt="Notice picture" src="https://lh3.googleusercontent.com/d/${esc(n.img)}=w900" onerror="this.remove()">`:""}
+  el.innerHTML = data.notices.length ? data.notices.map(n=>`<article class="post nt ${fresh.has(n.id)?"fresh":""}"><h4>${esc(n.title)} ${fresh.has(n.id)?'<span class="pill new">New</span>':""}</h4><div class="meta">${fmtDate(n.date)}</div><p>${esc(n.body)}</p>
     <div class="acts"><button class="btn small green" data-share-notice="${esc(n.id)}">Share on WhatsApp</button>${canEdit()?`<button class="btn small ghost danger" data-del-notice="${esc(n.id)}">Delete</button>`:""}</div></article>`).join("")
     : '<div class="empty">No notices right now.</div>';
 }
@@ -955,7 +956,7 @@ function memberModal(f){
       ...(x.changed?[{label:"Reset PIN",cls:"ghost",onClick:async close=>{ close(); if(!confirm("Reset registration for flat "+f+"?")) return; try{ await apiPost({action:"resetPin",flat:f}); await loadAdmin(); renderAll(); toast("Flat "+f+" can register again."); }catch(err){ toast(err.message,true); } }}]:[]),
       ...(!sup&&canEdit()?[{label:isV?"Remove admin access":"Make admin (view-only)",cls:"ghost",onClick:async close=>{ close(); await setViewer(f,!isV); }}]:[])]});
 }
-function adminSwitch(cur){ return `<div class="seg" style="margin:0 0 12px"><button type="button" data-go="admin" class="${cur==="admin"?"on":""}">Collections</button><button type="button" data-go="records" class="${cur==="records"?"on":""}">Expenses &amp; bills</button></div>`; }
+function adminSwitch(cur){ const b=(k,l)=>`<button type="button" data-go="${k}" class="${cur===k?"on":""}">${l}</button>`; return `<div class="seg" style="margin:0 0 12px">${b("admin","Collections")}${b("records","Expenses")}</div>`; }
 function renderAdmin(){
   const el = $("v-admin");
   if(!isAdmin()){ el.innerHTML=""; return; }
@@ -1119,6 +1120,45 @@ function renderRecords(){
   el.querySelectorAll("[data-redit]").forEach(b=>b.onclick=()=>{ const r=recD.records.find(x=>x.id===b.dataset.redit); if(r) editRecModal(r); });
 }
 
+/* ---------- residents directory (admins only; reads the "Contacts" tab) ---------- */
+let resD=null, resErr="", resFilter="all", resQ="";
+async function loadResidents(){ resErr=""; if(!resD) renderResidents(); try{ resD=await apiPost({action:"residents"}); }catch(e){ resErr=e.message; } renderResidents(); }
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function bdText(bd){ const p=String(bd||"").split("-").map(Number); return p.length===2&&p[0]>=1&&p[0]<=12?p[1]+" "+MON[p[0]-1]:""; }
+function bdWhen(n){ return n===0?"Today":n===1?"Tomorrow":"in "+n+" days"; }
+const CALL_SVG='<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M6.600 10.800a15 15 0 0 0 6.600 6.600l2.200-2.200c.3-.3.7-.4 1-.2 1.100.4 2.300.6 3.600.6.600 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.500c.6 0 1 .4 1 1 0 1.300.2 2.500.6 3.600.1.300 0 .7-.2 1l-2.300 2.200z"/></svg>';
+function phoneRow(label,raw){ if(!raw) return ""; const ph=cleanPhone(raw); return `<div class="detail"><span>${label}</span><b>${esc(String(raw))}${ph?` <span class="cicons"><a class="cic wa" href="https://wa.me/91${ph}" target="_blank" rel="noopener" aria-label="WhatsApp">${waSvg(18)}</a><a class="cic" href="tel:+91${ph}" aria-label="Call">${CALL_SVG}</a></span>`:""}</b></div>`; }
+function renderQuick(){ const q=$("quickBar"); if(!q) return; const on=!!(session&&canEdit()); q.hidden=!on; q.innerHTML=on?`<div class="stack" style="margin:0 0 12px"><button class="btn" data-act="tanker">💧 + Add tanker</button></div>`:""; }
+function renderResidents(){
+  const el=$("v-residents"); if(!el) return;
+  if(!isAdmin()){ el.innerHTML=""; return; }
+  if(resErr){ el.innerHTML=`<div class="card adminblock"><div class="section-head"><h3>Could not load</h3></div><p class="dueline" style="color:#c81e45">${esc(resErr)}</p>${/unknown action/i.test(resErr)?'<p class="dueline">Deploy the new Code.gs as a New version first.</p>':""}<button class="btn" data-go="residents">Try again</button></div>`; return; }
+  if(!resD){ el.innerHTML='<div class="empty">Loading…</div>'; return; }
+  const d=resD, q=resQ.trim().toLowerCase();
+  const soon=d.birthdays.filter(b=>b.days<=7);
+  const match=r=>!q||[r.flat,r.name,r.ownerName,r.email,r.phone].some(x=>String(x||"").toLowerCase().includes(q))||r.family.some(f=>f.name.toLowerCase().includes(q));
+  const rows=d.rows.filter(match);
+  const row=r=>{ const own=r.bd?`<div class="detail"><span>${esc(r.name||"Resident")} (self)</span><b>🎂 ${esc(bdText(r.bd))}</b></div>`:"";
+    return `<details class="fsec fsub" ${q&&rows.length<4?"open":""}><summary class="section-head"><h3>${esc(r.flat)} · ${esc(r.name||"—")}</h3><div class="count">${esc(r.role||"")}${r.members?" · "+esc(r.members)+" people":""}</div></summary>
+      ${phoneRow("Phone",r.phone)}
+      ${r.email?`<div class="detail"><span>Email</span><b><a href="mailto:${esc(r.email)}">${esc(r.email)}</a></b></div>`:""}
+      ${r.role==="Tenant"?`${r.ownerName?`<div class="detail"><span>Owner</span><b>${esc(r.ownerName)}</b></div>`:""}${phoneRow("Owner phone",r.ownerPhone)}`:""}
+      ${own}${r.family.map(f=>`<div class="detail"><span>${esc(f.name)}</span><b>${f.bd?"🎂 "+esc(bdText(f.bd)):"—"}</b></div>`).join("")}
+      ${r.vehicles.map(v=>`<div class="detail"><span>${esc(v.type||"Vehicle")}</span><b>${esc(v.no||"—")}</b></div>`).join("")}
+      <p class="dueline" style="margin:6px 0 0">Filled ${esc(r.when||"")}${r.answers>1?" · "+r.answers+" answers from this flat (latest shown)":""}</p></details>`; };
+  const miss=d.missing.filter(f=>!q||String(f.flat).toLowerCase().includes(q)||String(f.owner||"").toLowerCase().includes(q));
+  const missRow=f=>`<div class="row" style="cursor:default"><span class="fn">${esc(f.flat)}</span><span class="ow">${esc(f.owner||"")}</span>${contactIcons(f.flat)}</div>`;
+  el.innerHTML=`<div class="card adminblock"><div class="section-head"><h3>Residents</h3><div class="count">${d.rows.length} of ${d.total} flats filled</div></div>
+    ${!d.hasTab?'<p class="notebox">The "Contacts" tab was not found in your Google Sheet. Create the residents form and link it to this sheet first.</p>':""}
+    ${soon.length?`<div class="notebox" style="margin:0 0 10px"><b>🎂 Birthdays this week</b><br>${soon.map(b=>`${esc(b.name)} · Flat ${esc(b.flat)} · ${esc(bdText(b.bd))} (${bdWhen(b.days)})`).join("<br>")}</div>`:""}
+    <div class="field" style="margin:0 0 10px"><label for="rsQ">Search flat, name, phone or email</label><input id="rsQ" value="${esc(resQ)}" maxlength="40" autocomplete="off"></div>
+    <div class="seg" id="rsF" style="margin:0 0 6px"><button data-f="all" class="${resFilter==="all"?"on":""}">Filled (${rows.length})</button><button data-f="miss" class="${resFilter==="miss"?"on":""}">Not filled (${miss.length})</button></div>
+    ${resFilter==="miss"?`<div class="rows" style="max-height:none">${miss.map(missRow).join("")||'<div class="empty">Everyone has filled the form.</div>'}</div><p class="dueline">Tap the WhatsApp icon to remind them.</p>`
+      :(rows.map(row).join("")||'<div class="empty">Nothing found.</div>')}</div>`;
+  const qi=$("rsQ"); if(qi) qi.oninput=e=>{ resQ=e.target.value; const pos=e.target.selectionStart; renderResidents(); const n=$("rsQ"); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(x){} } };
+  $("rsF").onclick=e=>{ const b=e.target.closest("[data-f]"); if(b){ resFilter=b.dataset.f; renderResidents(); } };
+}
+
 /* ---------- monthly fund statement + water tankers ---------- */
 let tankProofs=[];
 let fundData=null, fundMonth="", tankData=null, fundBusy=false, actData=null, fundSub="fund", actFilter="active";
@@ -1258,7 +1298,7 @@ function renderFundBody(){
   }
   const p=st.proj||{items:[]}, v=st.variance, c=fundData.collection;
   const kp=(l,val,cl)=>`<div class="kpi"><span>${l}</span><b ${cl?`style="color:${cl}"`:""}>${val}</b></div>`;
-  el.innerHTML = `<div class="card adminblock"><div class="section-head"><h3>Monthly Fund Statement</h3><div class="count">Admin view</div></div>
+  el.innerHTML = `${canEdit()?`<div class="stack" style="margin:0 0 12px"><button class="btn" data-act="tanker">💧 + Add tanker</button></div>`:""}<div class="card adminblock"><div class="section-head"><h3>Monthly Fund Statement</h3><div class="count">Admin view</div></div>
     <p class="dueline" style="margin:-4px 0 12px">Read from the "Balance sheet" tab of your Google Sheet. Members see only the expense list.</p>
     <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">${sel}<button class="btn small ghost" id="fPrint">Print / Save as PDF</button><button class="btn small ghost" id="fPrintP">Print with bills &amp; proofs</button></div>
     <div class="kpis" style="grid-template-columns:repeat(2,1fr);margin-top:14px">
@@ -1405,19 +1445,20 @@ function tankerCardFull(edit){
 }
 function tankerModal(mi,ei){
   const m=mi==null?null:tankData.months[mi], e=m?m.entries[ei]:null;
-  const kind=e?tripKind(e):"HMWSSB";
+  let last={}; try{ last=JSON.parse(localStorage.getItem("tk_last")||"{}")||{}; }catch(x){}
+  const kind=e?tripKind(e):(last.kind==="Commercial"?"Commercial":"HMWSSB");
   let getTP=()=>[];
   openModal({title:e?"Edit tanker":"Add tanker",sub:e?"Saved in your \"water Tanker\" tab. The date must stay in the same month.":"Saved in your \"water Tanker\" tab.",
     body:`<div class="two"><div class="field"><label for="tDate">Date</label><input type="date" id="tDate" value="${e?esc(String(e.date).slice(0,10)):todayISO()}"></div><div class="field"><label for="tKind">Type</label><select id="tKind"><option value="HMWSSB" ${kind==="HMWSSB"?"selected":""}>GHMC / HMWSSB</option><option value="Commercial" ${kind==="Commercial"?"selected":""}>Private / Commercial</option></select></div></div>
-    <div class="two"><div class="field"><label for="tNo">Token / vehicle no (optional)</label><input id="tNo" maxlength="12" inputmode="text" value="${e?esc(tripNo(e)):""}"></div><div class="field"><label for="tCost">Cost ₹</label><input type="number" id="tCost" value="${e?e.cost:1000}" inputmode="decimal"></div></div>
-    <div class="field"><label for="tBata">Driver bata ₹</label><input type="number" id="tBata" value="${e?e.bata:100}" inputmode="decimal"></div>
+    <div class="two"><div class="field"><label for="tNo">Token / vehicle no (optional)</label><input id="tNo" maxlength="12" inputmode="text" value="${e?esc(tripNo(e)):""}"></div><div class="field"><label for="tCost">Cost ₹</label><input type="number" id="tCost" value="${e?e.cost:(last.cost||(kind==="Commercial"?1400:1000))}" inputmode="decimal"></div></div>
+    <div class="field"><label for="tBata">Driver bata ₹</label><input type="number" id="tBata" value="${e?e.bata:(last.bata!=null?last.bata:100)}" inputmode="decimal"></div>
     ${e?"":pickerHTML("tP","Payment screenshot (optional)")}`,
     actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:e?"Save":"+ Add tanker",onClick:async close=>{
       if(!$("tDate").value) throw new Error("Choose the date");
       const body={kind:$("tKind").value,tokenNo:$("tNo").value,cost:$("tCost").value,bata:$("tBata").value};
       if(e){ tankData=await apiPost(Object.assign({action:"editTanker",month:m.month,row:e.row,date:e.date,newDate:$("tDate").value},body)); try{ fundData=await apiPost({action:"fundStatement"}); }catch(x){} close(); renderFund(); toast("Tanker updated."); return; }
       const ph=getTP(), tdate=$("tDate").value, ttitle="Tanker "+($("tNo").value||$("tKind").value), tamt=(parseFloat($("tCost").value)||0)+(parseFloat($("tBata").value)||0);
-      tankData=await apiPost(Object.assign({action:"addTanker",date:tdate},body));
+      tankData=await apiPost(Object.assign({action:"addTanker",date:tdate},body)); try{ localStorage.setItem("tk_last",JSON.stringify({kind:body.kind,cost:body.cost,bata:body.bata})); }catch(x){}
       let tn="Tanker added to the sheet.";
       if(ph.length){ try{ await apiPost({action:"addRecord",category:"tanker",date:tdate,title:ttitle,amount:tamt,photos:ph.map(d=>({data:d}))}); tn="Tanker added with its screenshot."; }catch(err){ tn="Tanker added, but the screenshot could not be saved: "+err.message; } }
       try{ fundData=await apiPost({action:"fundStatement"}); }catch(x){} try{ const rj=await apiPost({action:"records",category:"tanker",month:""}); tankProofs=rj.records||[]; }catch(x){}
@@ -1534,7 +1575,7 @@ function renderAll(){
   const safe = f => { try{ f(); }catch(e){ lastErr=f.name+": "+(e&&e.message||e); console.error(e); const id=f===renderAdmin?"v-admin":f===renderRequests?"v-requests":""; if(id) $(id).innerHTML=`<div class="card adminblock"><div class="section-head"><h3>This page could not be shown</h3></div><p class="dueline" style="color:#c81e45">${esc(lastErr)}</p></div>`; } };
   safe(renderNav); safe(renderHeader);
   if(data){ safe(()=>renderFlats($("search").value)); }
-  [renderResult,renderOverview,renderNotices,renderComplaints,renderAdmin,renderRequests,renderMore,renderUtility,renderMeter,renderRecords,renderFooter].forEach(safe);
+  [renderResult,renderOverview,renderNotices,renderComplaints,renderAdmin,renderRequests,renderMore,renderUtility,renderMeter,renderRecords,renderResidents,renderQuick,renderFooter].forEach(safe);
 }
 
 /* ---------- lookup ---------- */
@@ -1665,7 +1706,7 @@ function loginModal(after){
   $("regToggle").onclick=()=>{ reg=!reg; $("lPin2w").hidden=!reg; $("lPin").placeholder=reg?"Choose a PIN (4 to 6 digits)":"PIN"; $("lPin").autocomplete=reg?"new-password":"current-password"; $("regToggle").textContent=reg?"Already registered? Sign in":"New here? Create your PIN"; primary().textContent=reg?"Register":"Sign in"; $("mErr").textContent=""; };
   document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{ mode=b.dataset.m; primary().textContent=mode==="member"&&reg?"Register":"Sign in"; document.querySelectorAll(".seg button").forEach(x=>x.classList.toggle("on",x===b)); $("pm").hidden=mode!=="member"; $("pa").hidden=mode!=="admin"; $("mErr").textContent=""; (mode==="member"?$("lFlat"):$("lUser")).focus(); });
 }
-$("adminBtn").onclick = () => { if(session){ setSession(null); adminData=null; lastClaimCount=null; if(["admin","requests","meter","utility","fund","works","meet","records"].includes(view)) view="dues"; renderAll(); updateBadge(); toast("Signed out."); } else loginModal(); };
+$("adminBtn").onclick = () => { if(session){ setSession(null); adminData=null; lastClaimCount=null; if(["admin","requests","meter","utility","fund","works","meet","records","residents"].includes(view)) view="dues"; renderAll(); updateBadge(); toast("Signed out."); } else loginModal(); };
 $("cLoginBtn").onclick = () => loginModal();
 function rejectModal(id){
   const k=adminData.claims.find(x=>x.id===id); if(!k) return;
@@ -1683,18 +1724,16 @@ function approveModal(id){
     }}]});
 }
 function noticeModal(){
-  let getNP=()=>[];
   openModal({title:"New notice",sub:"It appears on the notice board for all members.",
-    body:`<div class="field"><label for="nTitle">Title</label><input id="nTitle" maxlength="100"></div><div class="field"><label for="nBody">Details</label><textarea id="nBody" maxlength="800"></textarea></div>${pickerHTML("nP","Picture (optional)")}<div class="field"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="nMail" checked style="width:auto"> Also email this notice to owners</label></div>`,
+    body:`<div class="field"><label for="nTitle">Title</label><input id="nTitle" maxlength="100"></div><div class="field"><label for="nBody">Details</label><textarea id="nBody" maxlength="800"></textarea></div>`,
     actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Post",onClick:async close=>{
       if(!$("nTitle").value.trim()) throw new Error("Write a title");
-      const j=await apiPost({action:"addNotice",token,title:$("nTitle").value,body:$("nBody").value,photo:getNP()[0]||"",email:$("nMail").checked}); close(); await refresh(true); noticeToast(j);
+      const j=await apiPost({action:"addNotice",token,title:$("nTitle").value,body:$("nBody").value}); close(); await refresh(true); noticeToast(j);
     }},{label:"Post & share",cls:"green",onClick:async close=>{
       const title=$("nTitle").value.trim(), body=$("nBody").value.trim(); if(!title) throw new Error("Write a title");
-      const j=await apiPost({action:"addNotice",token,title,body,photo:getNP()[0]||"",email:$("nMail").checked}); close(); await refresh(true); noticeToast(j);
+      const j=await apiPost({action:"addNotice",token,title,body}); close(); await refresh(true); noticeToast(j);
       shareModal(`*${title}*\n${body}\n\n- ${data.config.association}`,"Share notice");
     }}]});
-  getNP=pickerBind("nP",1);
 }
 $("newNotice").onclick = noticeModal;
 function replyModal(id){
@@ -1744,6 +1783,7 @@ document.addEventListener("click",async e=>{
   const rp = e.target.closest("[data-reply]"); if(rp) return replyModal(rp.dataset.reply);
   const sc = e.target.closest("[data-share-complaint]");
   if(sc){ const c=data.complaints.find(x=>x.id===sc.dataset.shareComplaint); if(c) shareModal(`*Complaint update - Flat ${c.flat} (${c.category})*\n"${c.text}"\nStatus: ${c.status}${c.response?"\nReply: "+c.response:""}\n\n- ${data.config.association}`,"Share update"); return; }
+  const ac = e.target.closest("[data-act]"); if(ac&&ac.dataset.act==="tanker") return tankerModal(null);
   const gt = e.target.closest("[data-go]"); if(gt) return go(gt.dataset.go);
   const cl = e.target.closest("[data-claim]");
   if(cl){
