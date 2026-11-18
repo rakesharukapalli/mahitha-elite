@@ -527,6 +527,8 @@ window.UI_TEXT_TE = {
   "Edit tanker": "ట్యాంకర్ మార్చండి",
   "💧 + Add tanker": "💧 + ట్యాంకర్ జోడించండి",
   "Family details, birthdays, vehicles": "కుటుంబ వివరాలు, పుట్టినరోజులు, వాహనాలు",
+  "Photo (optional)": "ఫోటో (ఐచ్ఛికం)",
+  "📷 View photo": "📷 ఫోటో చూడండి",
   "+ Add tanker": "+ ట్యాంకర్ జోడించండి",
   "Add tanker": "ట్యాంకర్ జోడించండి",
   "Saved in the Balance sheet. Bills already attached stay with it.": "Balance sheet లో సేవ్ అవుతుంది. ఇప్పటికే జతచేసిన బిల్లులు అలాగే ఉంటాయి.",

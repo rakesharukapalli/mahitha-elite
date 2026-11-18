@@ -883,10 +883,14 @@ function renderNotices(){
   const el = $("noticeFeed");
   if(!data){ el.innerHTML='<div class="empty">Loading…</div>'; return; }
   const fresh = new Set(unseenNotices().map(n=>n.id));
-  el.innerHTML = data.notices.length ? data.notices.map(n=>`<article class="post nt ${fresh.has(n.id)?"fresh":""}"><h4>${esc(n.title)} ${fresh.has(n.id)?'<span class="pill new">New</span>':""}</h4><div class="meta">${fmtDate(n.date)}</div><p>${esc(n.body)}</p>
+  el.innerHTML = data.notices.length ? data.notices.map(n=>`<article class="post nt ${fresh.has(n.id)?"fresh":""}"><h4>${esc(n.title)} ${fresh.has(n.id)?'<span class="pill new">New</span>':""}</h4><div class="meta">${fmtDate(n.date)}</div><p>${esc(n.body)}</p>${n.photos?`<div class="npho" data-nid="${esc(n.id)}" data-n="${n.photos}"><button type="button" class="btn small ghost" data-nph="${esc(n.id)}">📷 View photo${n.photos>1?"s ("+n.photos+")":""}</button></div>`:""}
     <div class="acts"><button class="btn small green" data-share-notice="${esc(n.id)}">Share on WhatsApp</button>${canEdit()?`<button class="btn small ghost danger" data-del-notice="${esc(n.id)}">Delete</button>`:""}</div></article>`).join("")
     : '<div class="empty">No notices right now.</div>';
 }
+document.addEventListener("click",async e=>{ const b=e.target.closest("[data-nph]"); if(!b) return; const box=b.parentElement, id=b.dataset.nph, n=Number(box.dataset.n)||1;
+  box.innerHTML=Array.from({length:n},(_,i)=>`<div class="pf" data-i="${i}" style="text-align:center;color:#6b6358;font-size:13px">Loading…</div>`).join("");
+  for(const d of Array.from(box.querySelectorAll(".pf"))){ try{ const j=await apiPost({action:"noticePhoto",id,i:Number(d.dataset.i)}); d.innerHTML=`<img class="proofimg" alt="Notice photo" src="data:image/jpeg;base64,${j.data}">`; }catch(err){ d.innerHTML='<span style="color:#c81e45">'+esc(err.message)+'</span>'; } }
+});
 function canSeePhotos(c){ return isAdmin() || (isMember() && session.flats.includes(c.flat)); }
 function renderComplaints(){
   const sel = $("cFlat"), mine = myFlats(), sig = mine.join(",");
@@ -1725,16 +1729,18 @@ function approveModal(id){
 }
 function noticeModal(){
   openModal({title:"New notice",sub:"It appears on the notice board for all members.",
-    body:`<div class="field"><label for="nTitle">Title</label><input id="nTitle" maxlength="100"></div><div class="field"><label for="nBody">Details</label><textarea id="nBody" maxlength="800"></textarea></div>`,
+    body:`<div class="field"><label for="nTitle">Title</label><input id="nTitle" maxlength="100"></div><div class="field"><label for="nBody">Details</label><textarea id="nBody" maxlength="800"></textarea></div>${pickerHTML("nPh","Photo (optional)")}`,
     actions:[{label:"Cancel",cls:"ghost",cancel:true},{label:"Post",onClick:async close=>{
       if(!$("nTitle").value.trim()) throw new Error("Write a title");
-      const j=await apiPost({action:"addNotice",token,title:$("nTitle").value,body:$("nBody").value}); close(); await refresh(true); noticeToast(j);
+      const j=await apiPost({action:"addNotice",token,title:$("nTitle").value,body:$("nBody").value,photos:getNPh().map(d=>({data:d}))}); close(); await refresh(true); noticeToast(j);
     }},{label:"Post & share",cls:"green",onClick:async close=>{
       const title=$("nTitle").value.trim(), body=$("nBody").value.trim(); if(!title) throw new Error("Write a title");
-      const j=await apiPost({action:"addNotice",token,title,body}); close(); await refresh(true); noticeToast(j);
+      const j=await apiPost({action:"addNotice",token,title,body,photos:getNPh().map(d=>({data:d}))}); close(); await refresh(true); noticeToast(j);
       shareModal(`*${title}*\n${body}\n\n- ${data.config.association}`,"Share notice");
     }}]});
+  getNPh=pickerBind("nPh",3);
 }
+let getNPh=()=>[];
 $("newNotice").onclick = noticeModal;
 function replyModal(id){
   const c = data.complaints.find(x=>x.id===id); if(!c) return;
